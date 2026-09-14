@@ -1,0 +1,75 @@
+server:
+  # 8080 常被其它本地服务占用，这里用 8088，避免冲突
+  port: ${SERVER_PORT:8088}
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: job-assistant
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/ai_job_assistant?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    # 用 Slf4j 实现，SQL 日志就能通过 logging.level 控制开关
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  type-aliases-package: com.jobassistant.entity
+
+# ---------------------------------------------------------------------------
+# JWT 配置
+# ---------------------------------------------------------------------------
+jwt:
+  # HS256 要求密钥长度 >= 256 bit，生产环境请通过环境变量覆盖
+  secret: ${JWT_SECRET:YWktam9iLWFzc2lzdGFudC1qd3Qtc2VjcmV0LWtleS1mb3ItZGV2ZWxvcG1lbnQtb25seS0yMDI2}
+  expire-minutes: 1440
+  header: Authorization
+  prefix: "Bearer "
+
+# ---------------------------------------------------------------------------
+# AI 配置（OpenAI 兼容接口）
+# api-key 为空时自动走本地模拟实现，保证项目开箱即可跑通
+# ---------------------------------------------------------------------------
+ai:
+  enabled: true
+  base-url: ${AI_BASE_URL:https://api.openai.com/v1}
+  api-key: ${AI_API_KEY:}
+  model: ${AI_MODEL:gpt-4o-mini}
+  timeout-seconds: 90
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+    enable-footer: false
+
+logging:
+  level:
+    root: info
+    com.jobassistant: debug
+    # 想看每条 SQL 就把它改成 debug
+    com.jobassistant.mapper: info
