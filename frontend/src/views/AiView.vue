@@ -150,6 +150,7 @@ import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { MagicStick } from '@element-plus/icons-vue'
 import { aiApi, jobApi, resumeApi } from '@/api'
+import { scoreColor } from '@/utils/theme'
 
 const route = useRoute()
 
@@ -166,7 +167,6 @@ const quiz = reactive({
   countPerCategory: 3, save: true, loading: false, result: [], savedCount: 0
 })
 
-const scoreColor = (score) => (score >= 85 ? '#16a34a' : score >= 70 ? '#4f46e5' : score >= 50 ? '#f59e0b' : '#ef4444')
 const difficultyLabel = (value) => ({ EASY: '简单', MEDIUM: '中等', HARD: '困难' }[value] || value)
 
 async function runAnalyzeJd() {
@@ -271,7 +271,7 @@ onMounted(loadBaseData)
   margin: 0;
   padding-left: 18px;
   line-height: 1.9;
-  color: #4b5563;
+  color: #4b5568;
   font-size: 13px;
 }
 </style>

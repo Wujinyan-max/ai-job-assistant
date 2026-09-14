@@ -11,7 +11,7 @@
     <div class="board" v-loading="loading">
       <div v-for="status in orderedStatuses" :key="status" class="column">
         <div class="column-head">
-          <span class="dot" :style="{ background: colorOf(status) }"></span>
+          <span class="dot" :style="{ background: statusColor(status) }"></span>
           <span class="column-title">{{ statuses[status] || status }}</span>
           <span class="column-count">{{ (board[status] || []).length }}</span>
         </div>
@@ -49,23 +49,12 @@ import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ArrowDown, Refresh } from '@element-plus/icons-vue'
 import { applicationApi } from '@/api'
+import { statusColor } from '@/utils/theme'
 
 const loading = ref(false)
 const board = ref({})
 const statuses = ref({})
 const orderedStatuses = ref([])
-
-const COLORS = {
-  WISHLIST: '#94a3b8',
-  APPLIED: '#3b82f6',
-  WRITTEN_TEST: '#f59e0b',
-  INTERVIEW: '#4f46e5',
-  OFFER: '#16a34a',
-  REJECTED: '#ef4444',
-  CLOSED: '#6b7280'
-}
-
-const colorOf = (status) => COLORS[status] || '#94a3b8'
 
 async function load() {
   loading.value = true
@@ -99,7 +88,7 @@ onMounted(load)
 
 .column {
   flex: 0 0 236px;
-  background: #f1f2f5;
+  background: #f0f3f8;
   border-radius: 10px;
   padding: 10px;
   min-height: 220px;
@@ -125,7 +114,7 @@ onMounted(load)
 }
 
 .column-count {
-  color: #8c939d;
+  color: #8a90a2;
   font-weight: 400;
 }
 

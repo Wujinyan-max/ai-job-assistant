@@ -1,12 +1,13 @@
 <template>
-  <el-container style="height: 100%">
-    <el-aside width="212px" class="aside">
+  <el-container class="shell">
+    <el-aside class="aside">
       <div class="logo">
-        <el-icon :size="22"><Briefcase /></el-icon>
-        <span>AI 求职管理</span>
+        <span class="logo-mark">
+          <el-icon :size="18"><Briefcase /></el-icon>
+        </span>
+        <span class="logo-text">AI 求职管理</span>
       </div>
-      <el-menu :default-active="route.path" router class="menu" background-color="#1f2937"
-               text-color="#c9cdd4" active-text-color="#fff">
+      <el-menu :default-active="route.path" router class="menu">
         <el-menu-item v-for="item in menus" :key="item.path" :index="item.path">
           <el-icon><component :is="item.meta.icon" /></el-icon>
           <span>{{ item.meta.title }}</span>
@@ -14,16 +15,16 @@
       </el-menu>
     </el-aside>
 
-    <el-container>
+    <el-container class="body">
       <el-header class="header">
         <div class="header-title">{{ route.meta.title }}</div>
         <el-dropdown @command="onCommand">
           <span class="user">
-            <el-avatar :size="28" style="background: var(--brand)">
+            <el-avatar :size="30" class="user-avatar">
               {{ (userStore.user?.nickname || userStore.user?.username || 'U').slice(0, 1) }}
             </el-avatar>
             <span class="user-name">{{ userStore.user?.nickname || userStore.user?.username }}</span>
-            <el-icon><ArrowDown /></el-icon>
+            <el-icon class="user-caret"><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
@@ -76,55 +77,148 @@ async function onCommand(command) {
 </script>
 
 <style scoped>
+.shell {
+  height: 100%;
+}
+
+/* --------------------------------------------------------------- 侧边栏 */
 .aside {
-  background: #1f2937;
+  width: var(--sider-width);
+  background: var(--sider-bg);
+  border-right: 1px solid var(--divider);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .logo {
-  height: 56px;
+  height: var(--header-height);
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 18px;
+  gap: 10px;
+  padding: 0 20px;
+  flex: none;
+}
+
+.logo-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
   color: #fff;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(59, 114, 245, 0.32);
+  flex: none;
+}
+
+.logo-text {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  color: var(--text-primary);
 }
 
 .menu {
   border-right: none;
+  background: transparent;
+  padding: 6px 12px 12px;
   flex: 1;
+  overflow-y: auto;
+}
+
+/* 菜单项做成圆角胶囊，选中时浅蓝底 + 蓝色图标 */
+.menu :deep(.el-menu-item) {
+  height: 42px;
+  line-height: 42px;
+  margin-bottom: 4px;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  border-radius: 10px;
+  color: var(--text-regular);
+  font-size: 14px;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.menu :deep(.el-menu-item .el-icon) {
+  margin-right: 10px;
+  font-size: 17px;
+  color: var(--text-secondary);
+  transition: color 0.18s ease;
+}
+
+.menu :deep(.el-menu-item:hover) {
+  background: #e8edf6;
+  color: var(--text-primary);
+}
+
+.menu :deep(.el-menu-item:hover .el-icon) {
+  color: var(--text-regular);
+}
+
+.menu :deep(.el-menu-item.is-active) {
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  font-weight: 600;
+}
+
+.menu :deep(.el-menu-item.is-active .el-icon) {
+  color: var(--brand);
+}
+
+/* ----------------------------------------------------------------- 右侧 */
+.body {
+  min-width: 0;
 }
 
 .header {
-  height: 56px;
-  background: #fff;
+  height: var(--header-height);
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+  padding: 0 24px;
   z-index: 1;
 }
 
 .header-title {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 650;
+  letter-spacing: -0.2px;
+  color: var(--text-primary);
 }
 
 .user {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   cursor: pointer;
   outline: none;
+  padding: 5px 10px 5px 5px;
+  border-radius: 20px;
+  transition: background-color 0.18s ease;
+}
+
+.user:hover {
+  background: #f5f7fb;
+}
+
+.user-avatar {
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .user-name {
   font-size: 14px;
-  color: #1f2937;
+  color: var(--text-primary);
+}
+
+.user-caret {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .main {

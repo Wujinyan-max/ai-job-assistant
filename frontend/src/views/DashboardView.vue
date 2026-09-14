@@ -2,23 +2,35 @@
   <div class="page" v-loading="loading">
     <div class="stat-grid">
       <div class="stat-card">
-        <div class="stat-label">总投递</div>
+        <div class="stat-head">
+          <div class="stat-label">总投递</div>
+          <span class="stat-icon is-brand"><el-icon><Promotion /></el-icon></span>
+        </div>
         <div class="stat-value">{{ data.totalApplications }}</div>
         <div class="stat-extra">另有 {{ data.wishlistCount }} 个职位在收藏夹</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">进入面试</div>
-        <div class="stat-value" style="color: #4f46e5">{{ data.interviewCount }}</div>
+        <div class="stat-head">
+          <div class="stat-label">进入面试</div>
+          <span class="stat-icon is-brand"><el-icon><ChatLineSquare /></el-icon></span>
+        </div>
+        <div class="stat-value">{{ data.interviewCount }}</div>
         <div class="stat-extra">面试率 {{ data.interviewRate }}%</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">拿到 Offer</div>
-        <div class="stat-value" style="color: #16a34a">{{ data.offerCount }}</div>
+        <div class="stat-head">
+          <div class="stat-label">拿到 Offer</div>
+          <span class="stat-icon is-success"><el-icon><Trophy /></el-icon></span>
+        </div>
+        <div class="stat-value">{{ data.offerCount }}</div>
         <div class="stat-extra">Offer 率 {{ data.offerRate }}%</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">被拒绝</div>
-        <div class="stat-value" style="color: #ef4444">{{ data.rejectedCount }}</div>
+        <div class="stat-head">
+          <div class="stat-label">被拒绝</div>
+          <span class="stat-icon is-danger"><el-icon><CircleClose /></el-icon></span>
+        </div>
+        <div class="stat-value">{{ data.rejectedCount }}</div>
         <div class="stat-extra">不要气馁，继续投</div>
       </div>
     </div>
@@ -69,19 +81,31 @@
 
     <div class="stat-grid" style="margin-top: 16px">
       <div class="stat-card">
-        <div class="stat-label">目标公司</div>
+        <div class="stat-head">
+          <div class="stat-label">目标公司</div>
+          <span class="stat-icon"><el-icon><OfficeBuilding /></el-icon></span>
+        </div>
         <div class="stat-value">{{ data.companyCount }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">职位</div>
+        <div class="stat-head">
+          <div class="stat-label">职位</div>
+          <span class="stat-icon"><el-icon><Briefcase /></el-icon></span>
+        </div>
         <div class="stat-value">{{ data.jobCount }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">简历版本</div>
+        <div class="stat-head">
+          <div class="stat-label">简历版本</div>
+          <span class="stat-icon"><el-icon><Document /></el-icon></span>
+        </div>
         <div class="stat-value">{{ data.resumeCount }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">题库题目</div>
+        <div class="stat-head">
+          <div class="stat-label">题库题目</div>
+          <span class="stat-icon"><el-icon><Notebook /></el-icon></span>
+        </div>
         <div class="stat-value">{{ data.questionCount }}</div>
       </div>
     </div>
@@ -92,6 +116,15 @@
 import { onActivated, onBeforeUnmount, onMounted, reactive, ref, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { dashboardApi, interviewApi } from '@/api'
+import {
+  AXIS_LABEL,
+  AXIS_LINE,
+  BRAND,
+  BRAND_HOVER,
+  SPLIT_LINE_STYLE,
+  TEXT_REGULAR,
+  statusColor
+} from '@/utils/theme'
 
 const loading = ref(false)
 const trendDays = ref(30)
@@ -148,14 +181,14 @@ function render() {
     xAxis: {
       type: 'category',
       data: data.trend.map((item) => item.date.slice(5)),
-      axisLabel: { color: '#8c939d' },
-      axisLine: { lineStyle: { color: '#e5e7eb' } }
+      axisLabel: AXIS_LABEL,
+      axisLine: AXIS_LINE
     },
     yAxis: {
       type: 'value',
       minInterval: 1,
-      splitLine: { lineStyle: { color: '#f1f2f5' } },
-      axisLabel: { color: '#8c939d' }
+      splitLine: SPLIT_LINE_STYLE,
+      axisLabel: AXIS_LABEL
     },
     series: [
       {
@@ -164,11 +197,11 @@ function render() {
         smooth: true,
         symbolSize: 6,
         data: data.trend.map((item) => item.value),
-        itemStyle: { color: '#4f46e5' },
+        itemStyle: { color: BRAND },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(79,70,229,0.28)' },
-            { offset: 1, color: 'rgba(79,70,229,0.02)' }
+            { offset: 0, color: 'rgba(59,114,245,0.28)' },
+            { offset: 1, color: 'rgba(59,114,245,0.02)' }
           ])
         }
       }
@@ -178,8 +211,7 @@ function render() {
   const statusChart = echarts.init(statusRef.value)
   statusChart.setOption({
     tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-    legend: { bottom: 0, icon: 'circle', textStyle: { color: '#8c939d' } },
-    color: ['#94a3b8', '#3b82f6', '#f59e0b', '#4f46e5', '#16a34a', '#ef4444', '#6b7280'],
+    legend: { bottom: 0, icon: 'circle', textStyle: AXIS_LABEL },
     series: [
       {
         type: 'pie',
@@ -190,7 +222,11 @@ function render() {
         label: { formatter: '{b}\n{c}' },
         data: data.statusDistribution
           .filter((item) => item.value > 0)
-          .map((item) => ({ name: item.label, value: item.value }))
+          .map((item) => ({
+            name: item.label,
+            value: item.value,
+            itemStyle: { color: statusColor(item.name) }
+          }))
       }
     ]
   })
@@ -199,12 +235,12 @@ function render() {
   companyChart.setOption({
     grid: { left: 90, right: 30, top: 20, bottom: 20 },
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    xAxis: { type: 'value', minInterval: 1, splitLine: { lineStyle: { color: '#f1f2f5' } } },
+    xAxis: { type: 'value', minInterval: 1, splitLine: SPLIT_LINE_STYLE },
     yAxis: {
       type: 'category',
       inverse: true,
       data: data.topCompanies.map((item) => item.name),
-      axisLabel: { color: '#4b5563' },
+      axisLabel: { color: TEXT_REGULAR },
       axisLine: { show: false },
       axisTick: { show: false }
     },
@@ -212,7 +248,7 @@ function render() {
       {
         type: 'bar',
         barWidth: 14,
-        itemStyle: { color: '#6366f1', borderRadius: [0, 7, 7, 0] },
+        itemStyle: { color: BRAND_HOVER, borderRadius: [0, 7, 7, 0] },
         data: data.topCompanies.map((item) => item.value)
       }
     ]

@@ -232,7 +232,7 @@ onMounted(() => {
   margin: 0;
   padding-left: 18px;
   line-height: 1.9;
-  color: #4b5563;
+  color: #4b5568;
   font-size: 13px;
 }
 </style>

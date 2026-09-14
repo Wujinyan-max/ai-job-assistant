@@ -210,7 +210,7 @@ onMounted(load)
 }
 
 .resume-actions {
-  border-top: 1px solid #f1f2f5;
+  border-top: 1px solid #f0f3f8;
   padding-top: 8px;
   margin-top: auto;
 }

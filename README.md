@@ -44,21 +44,29 @@
 
 ## 功能截图
 
-| 数据看板 | 求职看板 |
+| 登录页 | 数据看板 |
 | --- | --- |
-| ![数据看板](docs/screenshots/01-dashboard.png) | ![求职看板](docs/screenshots/02-board.png) |
+| ![登录页](docs/screenshots/00-login.png) | ![数据看板](docs/screenshots/01-dashboard.png) |
 
-| 投递记录 | 职位管理 |
+| 求职看板 | 投递记录 |
 | --- | --- |
-| ![投递记录](docs/screenshots/03-applications.png) | ![职位管理](docs/screenshots/04-jobs.png) |
+| ![求职看板](docs/screenshots/02-board.png) | ![投递记录](docs/screenshots/03-applications.png) |
+
+| 职位管理 | 公司管理 |
+| --- | --- |
+| ![职位管理](docs/screenshots/04-jobs.png) | ![公司管理](docs/screenshots/09-companies.png) |
+
+| 简历管理 | 个人中心 |
+| --- | --- |
+| ![简历管理](docs/screenshots/08-resumes.png) | ![个人中心](docs/screenshots/10-profile.png) |
 
 | 面试管理 | 面试题库 |
 | --- | --- |
 | ![面试管理](docs/screenshots/05-interviews.png) | ![面试题库](docs/screenshots/06-questions.png) |
 
-| AI 助手 | 简历管理 |
-| --- | --- |
-| ![AI 助手](docs/screenshots/07-ai.png) | ![简历管理](docs/screenshots/08-resumes.png) |
+| AI 助手（JD 解析 / 简历匹配 / AI 出题） |
+| --- |
+| ![AI 助手](docs/screenshots/07-ai.png) |
 
 ---
 
@@ -89,6 +97,15 @@
 | Vue Router | 4.x | 路由（hash 模式） |
 | Axios | 1.x | HTTP 请求，拦截器统一注入 token |
 | ECharts | 5.x | 趋势折线图、状态饼图、Top 公司柱状图 |
+
+#### 界面与设计令牌
+
+整体是「浅色侧边栏 + 冷灰底 + 白色卡片 + 蓝色强调」的风格，配色没有散落在各个组件里，而是收在两处：
+
+- `assets/main.css`：CSS 变量定义设计令牌（品牌色、中性色、语义色、圆角、阴影），并覆盖 Element Plus 的 `--el-*` 变量，内置组件的主题跟着一起走；
+- `utils/theme.js`：JS 侧的同一套色值，供 ECharts 和状态色使用，图表颜色不再各写一份 hex。
+
+投递状态色通过 `statusColor(status)` 按状态码取值，饼图对每个数据项单独上色，因此不依赖后端返回的排序。
 
 > 第一版**刻意没有引入 Redis / Docker / 消息队列**，目的是让项目 clone 下来就能跑通。
 > 这些属于「后续规划」里的加分项，不是跑通全流程的必要条件。
@@ -409,6 +426,8 @@ ai-job-assistant/
         ├── api/                   # request.js 拦截器 + index.js 全部接口封装
         ├── router/                # 路由与登录守卫
         ├── store/                 # Pinia
+        ├── utils/                 # theme.js 统一调色板（图表 / 状态色 / 评分色）
+        ├── assets/main.css        # 设计令牌 + Element Plus 主题覆盖
         ├── components/AppLayout.vue
         └── views/                 # 11 个页面
 ```

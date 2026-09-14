@@ -2,7 +2,7 @@
   <div class="login-page">
     <div class="login-card">
       <div class="brand">
-        <el-icon :size="30" color="#4f46e5"><Briefcase /></el-icon>
+        <el-icon :size="30" color="#3b72f5"><Briefcase /></el-icon>
         <h1>AI 求职管理平台</h1>
         <p>统一管理投递、简历与面试，用 AI 提升求职效率</p>
       </div>
@@ -104,7 +104,7 @@ const onRegister = () => submit(authApi.register, registerRef.value, registerFor
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 45%, #e0f2fe 100%);
+  background: linear-gradient(135deg, #e8effd 0%, #f3f6fa 45%, #e3eefb 100%);
 }
 
 .login-card {
@@ -112,7 +112,7 @@ const onRegister = () => submit(authApi.register, registerRef.value, registerFor
   background: #fff;
   border-radius: 14px;
   padding: 32px 32px 24px;
-  box-shadow: 0 12px 40px rgba(79, 70, 229, 0.12);
+  box-shadow: 0 12px 40px rgba(59, 114, 245, 0.12);
 }
 
 .brand {
@@ -126,7 +126,7 @@ const onRegister = () => submit(authApi.register, registerRef.value, registerFor
 }
 
 .brand p {
-  color: #8c939d;
+  color: #8a90a2;
   font-size: 13px;
   margin: 0 0 8px;
 }
