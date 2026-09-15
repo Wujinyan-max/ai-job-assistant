@@ -7,6 +7,11 @@ server:
 spring:
   application:
     name: job-assistant
+  # 简历文件导入：PDF / DOCX 以二进制上传，这里限制单文件大小
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/ai_job_assistant?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
@@ -53,6 +58,8 @@ ai:
   api-key: ${AI_API_KEY:}
   model: ${AI_MODEL:gpt-4o-mini}
   timeout-seconds: 90
+  # 生产环境务必通过环境变量设置一个足够长的随机值，用于加密用户 API Key
+  config-encryption-key: ${AI_CONFIG_ENCRYPTION_KEY:change-this-development-secret}
 
 springdoc:
   swagger-ui:

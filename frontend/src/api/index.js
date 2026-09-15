@@ -36,7 +36,8 @@ export const resumeApi = {
   create: (data) => request.post('/resumes', data),
   update: (id, data) => request.put(`/resumes/${id}`, data),
   remove: (id) => request.delete(`/resumes/${id}`),
-  setDefault: (id) => request.put(`/resumes/${id}/default`)
+  setDefault: (id) => request.put(`/resumes/${id}/default`),
+  importFile: (formData) => request.post('/resumes/import', formData)
 }
 
 /* ------------------------------- 投递 ---------------------------------- */
@@ -75,7 +76,9 @@ export const aiApi = {
   matchResume: (data) => request.post('/ai/match-resume', data),
     generateQuestions: (data) => request.post('/ai/generate-questions', data),
     history: (params) => request.get('/ai/history', { params }),
-    config: () => request.get('/ai/config')
+    config: () => request.get('/ai/config'),
+    saveConfig: (data) => request.put('/ai/config', data),
+    testConfig: () => request.post('/ai/config/test')
   }
 
 /* ------------------------------- 看板 ---------------------------------- */

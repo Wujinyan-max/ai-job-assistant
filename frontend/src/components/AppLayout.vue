@@ -17,7 +17,10 @@
 
     <el-container class="body">
       <el-header class="header">
-        <div class="header-title">{{ route.meta.title }}</div>
+        <div class="header-context">
+          <span class="context-dot"></span>
+          <span>{{ route.meta.title }}</span>
+        </div>
         <el-dropdown @command="onCommand">
           <span class="user">
             <el-avatar :size="30" class="user-avatar">
@@ -96,14 +99,14 @@ async function onCommand(command) {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 20px;
+  padding: 0 14px;
   flex: none;
 }
 
 .logo-mark {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
   color: #fff;
   display: flex;
@@ -114,8 +117,8 @@ async function onCommand(command) {
 }
 
 .logo-text {
-  font-size: 15px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 700;
   letter-spacing: 0.2px;
   color: var(--text-primary);
 }
@@ -123,21 +126,21 @@ async function onCommand(command) {
 .menu {
   border-right: none;
   background: transparent;
-  padding: 6px 12px 12px;
+  padding: 8px 10px 12px;
   flex: 1;
   overflow-y: auto;
 }
 
 /* 菜单项做成圆角胶囊，选中时浅蓝底 + 蓝色图标 */
 .menu :deep(.el-menu-item) {
-  height: 42px;
-  line-height: 42px;
-  margin-bottom: 4px;
-  padding-left: 12px !important;
+  height: 38px;
+  line-height: 38px;
+  margin-bottom: 3px;
+  padding-left: 11px !important;
   padding-right: 12px !important;
   border-radius: 10px;
   color: var(--text-regular);
-  font-size: 14px;
+  font-size: 13px;
   transition: background-color 0.18s ease, color 0.18s ease;
 }
 
@@ -179,15 +182,24 @@ async function onCommand(command) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 20px;
   z-index: 1;
 }
 
-.header-title {
-  font-size: 16px;
-  font-weight: 650;
-  letter-spacing: -0.2px;
-  color: var(--text-primary);
+.header-context {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.context-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 4px var(--success-soft);
 }
 
 .user {
@@ -225,5 +237,13 @@ async function onCommand(command) {
   padding: 0;
   background: var(--page-bg);
   overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .logo { justify-content: center; padding: 0; }
+  .logo-text, .menu :deep(.el-menu-item span) { display: none; }
+  .menu :deep(.el-menu-item) { justify-content: center; padding: 0 !important; }
+  .menu :deep(.el-menu-item .el-icon) { margin: 0; }
+  .header-context { display: none; }
 }
 </style>

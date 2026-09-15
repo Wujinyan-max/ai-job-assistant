@@ -1,5 +1,8 @@
 <template>
   <div class="page">
+    <div class="page-header">
+      <div><h2 class="page-title">面试题库</h2><div class="page-subtitle">按技术方向练习，逐步标记掌握情况</div></div>
+    </div>
     <div class="toolbar">
       <el-select v-model="query.category" placeholder="全部题型" clearable style="width: 160px" @change="load">
         <el-option v-for="item in categories" :key="item" :label="item" :value="item" />
@@ -48,7 +51,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onActivated, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { MagicStick, Search } from '@element-plus/icons-vue'
 import { questionApi } from '@/api'
@@ -89,6 +92,7 @@ async function onDelete(item) {
 }
 
 onMounted(load)
+onActivated(load)
 </script>
 
 <style scoped>
@@ -97,6 +101,14 @@ onMounted(load)
   flex-direction: column;
   gap: 12px;
 }
+
+.question-card {
+  position: relative;
+  border-left: 3px solid #d9e5ff;
+  transition: border-color .18s ease, transform .18s ease;
+}
+
+.question-card:hover { border-left-color: var(--brand); transform: translateX(2px); }
 
 .question-head {
   display: flex;

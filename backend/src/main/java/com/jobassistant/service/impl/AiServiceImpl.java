@@ -10,7 +10,7 @@ import com.jobassistant.ai.AiTask;
 import com.jobassistant.common.AiAnalysisType;
 import com.jobassistant.common.BusinessException;
 import com.jobassistant.common.ErrorCode;
-import com.jobassistant.config.AiProperties;
+import com.jobassistant.dto.AiConfigSaveDTO;
 import com.jobassistant.dto.GenerateQuestionDTO;
 import com.jobassistant.dto.JdAnalyzeDTO;
 import com.jobassistant.dto.ResumeMatchDTO;
@@ -22,6 +22,7 @@ import com.jobassistant.mapper.AiAnalysisMapper;
 import com.jobassistant.mapper.InterviewQuestionMapper;
 import com.jobassistant.security.SecurityUtils;
 import com.jobassistant.service.AiService;
+import com.jobassistant.service.AiConfigService;
 import com.jobassistant.service.JobService;
 import com.jobassistant.service.ResumeService;
 import com.jobassistant.vo.AiConfigVO;
@@ -55,14 +56,27 @@ public class AiServiceImpl implements AiService {
     private final JobService jobService;
     private final ResumeService resumeService;
     private final ObjectMapper objectMapper;
-    private final AiProperties aiProperties;
+    private final AiConfigService aiConfigService;
 
     @Override
     public AiConfigVO config() {
-        boolean mock = !aiProperties.hasApiKey();
-        return new AiConfigVO(aiProperties.isEnabled(),
-                mock ? AiClient.MOCK_MODEL : aiProperties.getModel(),
-                mock);
+        return aiConfigService.getMaskedConfig();
+    }
+
+    @Override
+    public AiConfigVO saveConfig(AiConfigSaveDTO dto) {
+        return aiConfigService.save(dto);
+    }
+
+    @Override
+    public String testConfig() {
+        var runtime = aiConfigService.runtimeConfig();
+        if (runtime.apiKey() == null || runtime.apiKey().isBlank()) {
+            throw new BusinessException(ErrorCode.AI_CALL_FAILED, "请先填写并保存 API Key");
+        }
+        AiReply reply = aiClient.chat(new AiRequest(AiTask.JD_ANALYZE,
+                "只输出 JSON。", "返回 {\"ok\":true}。", Map.of()), runtime);
+        return "连接成功 · " + reply.model();
     }
 
     @Override
@@ -80,7 +94,7 @@ public class AiServiceImpl implements AiService {
                 AiTask.JD_ANALYZE,
                 AiPrompts.JD_ANALYZE_SYSTEM,
                 AiPrompts.jdAnalyzeUser(jd),
-                Map.of("jd", jd)));
+                Map.of("jd", jd)), aiConfigService.runtimeConfig());
         JdAnalysisVO vo = aiClient.parse(reply.content(), JdAnalysisVO.class);
         saveAnalysis(dto.jobId(), null, AiAnalysisType.JD_ANALYZE, reply, null, vo);
         return vo;
@@ -110,7 +124,7 @@ public class AiServiceImpl implements AiService {
                 AiTask.RESUME_MATCH,
                 AiPrompts.RESUME_MATCH_SYSTEM,
                 AiPrompts.resumeMatchUser(jd, resumeContent),
-                Map.of("jd", jd, "resume", resumeContent)));
+                Map.of("jd", jd, "resume", resumeContent)), aiConfigService.runtimeConfig());
         ResumeMatchVO vo = aiClient.parse(reply.content(), ResumeMatchVO.class);
         saveAnalysis(dto.jobId(), dto.resumeId(), AiAnalysisType.RESUME_MATCH, reply, vo.score(), vo);
         return vo;
@@ -149,7 +163,7 @@ public class AiServiceImpl implements AiService {
                 AiPrompts.QUESTION_SYSTEM,
                 AiPrompts.questionUser(job == null ? "未指定岗位" : job.getJobName(), jd, resumeContent,
                         categories, count, difficulty),
-                inputs));
+                inputs), aiConfigService.runtimeConfig());
 
         QuestionPayload payload = aiClient.parse(reply.content(), QuestionPayload.class);
         List<InterviewQuestionVO> questions = payload.questions() == null ? List.of() : payload.questions();

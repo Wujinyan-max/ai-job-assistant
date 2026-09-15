@@ -39,6 +39,7 @@
 | **统一响应与异常** | `Result<T>` + `PageResult<T>` + `ErrorCode` 枚举 + 全局异常处理器，接口返回结构前后端一致 |
 | **分层清晰** | `controller / service / service.impl / mapper / entity / dto / vo / ai / security / config / common`，DTO 与 VO 分离，实体不外泄 |
 | **多租户数据隔离** | 所有业务查询都带 `user_id`，越权访问统一返回业务错误码，不会拿到别人的数据 |
+| **简历文件导入** | 支持上传 PDF / DOCX / TXT 简历，后端抽文本后用规则引擎推断姓名、电话、邮箱、学历、工作年限、技能标签，回填表单、用户确认后再保存 |
 
 ---
 
@@ -284,6 +285,21 @@ mvn test
 
 ### 接入真实大模型
 
+登录后进入「AI 助手」，点击右上角「配置模型」，即可为当前账号填写厂商、API 模式、
+Base URL、模型名和 API Key。支持 OpenAI、DeepSeek、通义千问兼容模式、Moonshot、
+Ollama 以及自定义 OpenAI 兼容服务。
+
+- **Chat Completions**：调用 `{baseUrl}/chat/completions`；
+- **Responses**：调用 `{baseUrl}/responses`；
+- API Key 使用 AES-256-GCM 加密后按用户保存，前端只能读取掩码；
+- 生产环境必须设置 `AI_CONFIG_ENCRYPTION_KEY`，且部署后不要随意更换，否则旧密钥无法解密。
+
+老数据库需要先执行一次非破坏性迁移：
+
+```bash
+mysql -uroot -p < sql/migrations/V2__ai_user_config.sql
+```
+
 任何兼容 OpenAI 协议的服务都能用（OpenAI / DeepSeek / 通义千问兼容模式 / 本地 Ollama）。
 改 `application.yml` 或直接用环境变量：
 
@@ -365,6 +381,7 @@ WISHLIST ──> APPLIED ──> WRITTEN_TEST ──> INTERVIEW ──> OFFER
 | 简历 | GET | `/resumes` `/resumes/all` | 分页 / 全部 |
 | 简历 | POST / PUT / DELETE | `/resumes[/{id}]` | 增改删 |
 | 简历 | PUT | `/resumes/{id}/default` | 设为默认简历 |
+| 简历 | POST | `/resumes/import` | 上传 PDF / DOCX / TXT 简历，解析成「新增简历」表单字段（不落库） |
 | 投递 | GET | `/applications` | 分页 + 状态筛选 |
 | 投递 | GET | `/applications/board` | 看板数据（按状态分组） |
 | 投递 | GET | `/applications/statuses` | 状态枚举与中文名 |
@@ -440,7 +457,7 @@ ai-job-assistant/
 | `/dashboard` | 数据看板 | 统计卡 + 30 天趋势 + 状态分布 + Top 公司 + 近期面试 |
 | `/companies` | 公司管理 | 公司列表与状态维护 |
 | `/jobs` | 职位管理 | 职位列表，含「AI 解析」侧边抽屉 |
-| `/resumes` | 简历管理 | 卡片式多版本简历 |
+| `/resumes` | 简历管理 | 卡片式多版本简历，支持导入 PDF / DOCX / TXT 解析后回填 |
 | `/applications` | 投递记录 | 表格 + 状态流转 |
 | `/board` | 求职看板 | 7 列看板，卡片可直接改状态 |
 | `/interviews` | 面试管理 | 面试安排与复盘 |
@@ -459,6 +476,8 @@ ai-job-assistant/
 | `ApplicationStatusTest` | 状态合法性校验、中文标签、看板列顺序、WISHLIST 不计入投递数 |
 | `AiClientTest` | 大模型返回内容解析：纯 JSON、```json 代码块、前后带说明文字、无 JSON 时报错 |
 | `MockAiEngineTest` | JD 技能/经验/学历抽取、长词优先（JavaScript 不误判成 Java）、匹配分、按分类出题 |
+| `ResumeFieldExtractorTest` | 中文简历字段抽取：姓名 / 电话 / 邮箱 / 学历 / 工作年限 / 求职意向 / 技能边界 / 空文本兜底 |
+| `ResumeImportServiceImplTest` | 简历文件导入：DOCX 解析、GBK txt 兜底、`.doc` 明确提示、扫描件无文字报错、10MB 上限 |
 
 ```bash
 cd backend && mvn test
@@ -482,6 +501,10 @@ cd backend && mvn test
 **Q：不配 AI key 能用吗？**
 能。会自动走本地模拟引擎，三个 AI 功能都能出结果，只是内容质量不如真实模型。
 
+**Q：导入简历提示格式不支持，或者读不出文字？**
+只支持 PDF / DOCX / TXT（含 `.md`），且必须是文字版：扫描件（图片型 PDF）、加密 PDF
+和 `.doc` 老格式都不行，用 Word 另存为 `.docx` 或 PDF 再试。单文件上限 10MB。
+
 **Q：为什么没有 Redis / Docker？**
 第一版的目标是「开箱即跑、跑通闭环」。这些是加分项，见下面的后续规划。
 
@@ -497,7 +520,7 @@ cd backend && mvn test
 
 - [ ] **Redis 缓存**：缓存看板统计、题库分类，加分布式锁防止 AI 接口被重复触发
 - [ ] **定时任务**：面试前一天自动提醒（`@Scheduled` 或延迟队列）
-- [ ] **简历 PDF 解析**：上传 PDF 自动抽取文本，省掉手动粘贴
+- [x] **简历文件导入**：上传 PDF / DOCX / TXT 自动抽取文本并推断字段，省掉手动粘贴
 - [ ] **AI 模拟面试**：多轮对话式追问，结合历史答题情况动态调整难度
 - [ ] **求职周报**：每周汇总投递量、面试转化率变化，邮件推送
 - [ ] **岗位关键词统计**：把 JD 解析出的技能词做聚合，看出市场最缺什么

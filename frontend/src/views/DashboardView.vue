@@ -1,5 +1,16 @@
 <template>
   <div class="page" v-loading="loading">
+    <section class="dashboard-hero">
+      <div>
+        <div class="hero-kicker">今日专注 · 保持节奏</div>
+        <h1>{{ greeting }}，{{ userName }}</h1>
+        <p>继续向前，机会会在认真准备的人身上发生。</p>
+      </div>
+      <div class="hero-side">
+        <div class="hero-date">{{ today }}</div>
+        <div class="hero-quote">“机会是留给准备充分的人。”</div>
+      </div>
+    </section>
     <div class="stat-grid">
       <div class="stat-card">
         <div class="stat-head">
@@ -113,9 +124,10 @@
 </template>
 
 <script setup>
-import { onActivated, onBeforeUnmount, onMounted, reactive, ref, nextTick } from 'vue'
+import { computed, onActivated, onBeforeUnmount, onMounted, reactive, ref, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { dashboardApi, interviewApi } from '@/api'
+import { useUserStore } from '@/store/user'
 import {
   AXIS_LABEL,
   AXIS_LINE,
@@ -127,6 +139,18 @@ import {
 } from '@/utils/theme'
 
 const loading = ref(false)
+const userStore = useUserStore()
+const userName = computed(() => userStore.user?.nickname || userStore.user?.username || '求职者')
+const greeting = computed(() => {
+  const hour = new Date().getHours()
+  if (hour < 11) return '早上好'
+  if (hour < 14) return '中午好'
+  if (hour < 18) return '下午好'
+  return '晚上好'
+})
+const today = new Intl.DateTimeFormat('zh-CN', {
+  year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
+}).format(new Date())
 const trendDays = ref(30)
 const upcoming = ref([])
 const data = reactive({
@@ -275,16 +299,60 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.dashboard-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 16px;
+  padding: 4px 2px 2px;
+}
+
+.dashboard-hero::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -8px;
+  width: 220px;
+  height: 86px;
+  pointer-events: none;
+  background: radial-gradient(circle at 70% 60%, rgba(59,114,245,.13), transparent 68%);
+}
+
+.hero-kicker {
+  color: var(--brand);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.dashboard-hero h1 {
+  margin: 5px 0 3px;
+  font-size: 23px;
+  letter-spacing: -.5px;
+}
+
+.dashboard-hero p, .hero-side { margin: 0; color: var(--text-secondary); font-size: 12px; }
+.hero-side { position: relative; z-index: 1; text-align: right; line-height: 1.8; }
+.hero-date { color: var(--text-regular); font-weight: 600; }
+.hero-quote { color: var(--brand-deep); }
+
 .grid-2 {
   display: grid;
   grid-template-columns: 1.35fr 1fr;
-  gap: 16px;
+  gap: 12px;
 }
 
 @media (max-width: 1100px) {
   .grid-2 {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 700px) {
+  .dashboard-hero { align-items: flex-start; flex-direction: column; }
+  .hero-side { text-align: left; }
 }
 
 .card-title {

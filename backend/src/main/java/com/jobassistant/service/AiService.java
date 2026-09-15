@@ -27,4 +27,10 @@ public interface AiService {
 
     /** 当前 AI 配置，用于前端展示"真实模型 / 本地模拟" */
     AiConfigVO config();
+
+    /** 保存当前用户的 AI 配置。 */
+    AiConfigVO saveConfig(com.jobassistant.dto.AiConfigSaveDTO dto);
+
+    /** 使用当前用户配置发送最小请求，验证连接。 */
+    String testConfig();
 }

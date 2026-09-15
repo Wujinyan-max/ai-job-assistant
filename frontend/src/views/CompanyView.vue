@@ -1,5 +1,8 @@
 <template>
   <div class="page">
+    <div class="page-header">
+      <div><h2 class="page-title">公司管理</h2><div class="page-subtitle">维护目标公司资料与当前跟进状态</div></div>
+    </div>
     <div class="toolbar">
       <el-input v-model="query.keyword" placeholder="搜索公司名称 / 行业" clearable style="width: 240px"
                 @keyup.enter="load" @clear="load" />
@@ -75,7 +78,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onActivated, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
 import { companyApi } from '@/api'
@@ -145,4 +148,5 @@ async function onDelete(row) {
 }
 
 onMounted(load)
+onActivated(load)
 </script>

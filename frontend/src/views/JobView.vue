@@ -1,5 +1,8 @@
 <template>
   <div class="page">
+    <div class="page-header">
+      <div><h2 class="page-title">职位管理</h2><div class="page-subtitle">集中管理岗位信息，并使用 AI 快速解析 JD</div></div>
+    </div>
     <div class="toolbar">
       <el-input v-model="query.keyword" placeholder="搜索职位名称 / 地点" clearable style="width: 220px"
                 @keyup.enter="load" @clear="load" />
@@ -121,7 +124,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onActivated, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
 import { aiApi, companyApi, jobApi } from '@/api'
@@ -164,6 +167,8 @@ async function loadCompanies() {
 function openDialog(row) {
   dialog.id = row?.id ?? null
   dialog.visible = true
+  // 打开表单时重新拉一次公司列表，保证刚创建的公司也能选到
+  loadCompanies()
   Object.assign(form, {
     companyId: row?.companyId ?? null,
     jobName: row?.jobName || '',
@@ -212,6 +217,13 @@ async function openAi(row) {
 }
 
 onMounted(() => {
+  load()
+  loadCompanies()
+})
+
+// 页面被 keep-alive 缓存后，再次进入不会触发 onMounted，这里重新拉一次，
+// 否则新建的公司不会出现在「关联公司」下拉框里
+onActivated(() => {
   load()
   loadCompanies()
 })

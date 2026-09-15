@@ -6,13 +6,15 @@
         <div class="page-subtitle">
           当前模式：
           <el-tag size="small" :type="aiMode.mock ? 'warning' : 'success'" effect="light">
-            {{ aiMode.mock ? '本地模拟引擎（未配置 AI_API_KEY）' : `大模型 ${aiMode.model}` }}
+            {{ aiMode.mock ? '本地模拟引擎（请配置 API Key）' : `${providerLabel(aiMode.provider)} · ${aiMode.model} · ${modeLabel(aiMode.apiMode)}` }}
           </el-tag>
         </div>
       </div>
+      <el-button :icon="Setting" @click="openConfig">配置模型</el-button>
     </div>
 
-    <el-tabs v-model="tab" class="ai-tabs">
+    <div class="ai-workspace">
+      <el-tabs v-model="tab" class="ai-tabs">
       <!-- ------------------------------ JD 解析 ------------------------------ -->
       <el-tab-pane label="JD 解析" name="jd">
         <div class="card">
@@ -140,15 +142,76 @@
           <el-empty v-else description="选择职位和简历后点击「生成面试题」" :image-size="90" />
         </div>
       </el-tab-pane>
-    </el-tabs>
+      </el-tabs>
+
+      <aside class="ai-guide">
+        <div class="guide-mark"><el-icon><MagicStick /></el-icon></div>
+        <div class="guide-eyebrow">使用示例</div>
+        <h3>让 AI 成为你的求职副驾</h3>
+        <ul>
+          <li><span>01</span>解析职位 JD，提取关键能力</li>
+          <li><span>02</span>分析简历与岗位的匹配度</li>
+          <li><span>03</span>生成个性化面试练习题</li>
+          <li><span>04</span>把结果沉淀到题库持续复习</li>
+        </ul>
+        <div class="guide-tip">先选择已保存的职位，系统会自动带入对应 JD。</div>
+      </aside>
+    </div>
+
+    <el-drawer v-model="configDrawer" title="模型服务配置" size="480px" class="config-drawer">
+      <div class="config-intro">
+        <div class="config-intro-icon"><el-icon><Setting /></el-icon></div>
+        <div><strong>使用你自己的模型服务</strong><p>配置仅对当前账号生效，API Key 加密保存且不会再次明文展示。</p></div>
+      </div>
+
+      <el-form label-position="top" class="config-form">
+        <el-form-item label="模型厂商">
+          <el-select v-model="configForm.provider" style="width: 100%" @change="applyProviderPreset">
+            <el-option v-for="item in providers" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="API 模式">
+          <el-radio-group v-model="configForm.apiMode" class="mode-picker">
+            <el-radio-button value="CHAT_COMPLETIONS">Chat Completions</el-radio-button>
+            <el-radio-button value="RESPONSES">Responses</el-radio-button>
+          </el-radio-group>
+          <div class="field-hint">
+            请求端点：{{ configForm.apiMode === 'RESPONSES' ? '/responses' : '/chat/completions' }}
+          </div>
+        </el-form-item>
+
+        <el-form-item label="Base URL">
+          <el-input v-model="configForm.baseUrl" placeholder="https://api.openai.com/v1" />
+        </el-form-item>
+        <el-form-item label="模型名称">
+          <el-input v-model="configForm.model" placeholder="例如 gpt-4.1-mini、deepseek-chat" />
+        </el-form-item>
+        <el-form-item label="API Key">
+          <el-input v-model="configForm.apiKey" type="password" show-password
+                    :placeholder="aiMode.hasApiKey ? `已保存 ${aiMode.apiKeyMasked}，留空则保持不变` : '请输入 API Key'" />
+          <div class="field-hint">密钥只会发送到你的后端，不会出现在配置查询结果或日志中。</div>
+        </el-form-item>
+        <el-form-item label="启用该配置">
+          <el-switch v-model="configForm.enabled" />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="config-actions">
+          <el-button :loading="testingConfig" @click="testConnection">测试连接</el-button>
+          <el-button type="primary" :loading="savingConfig" @click="saveConfig(true)">保存配置</el-button>
+        </div>
+      </template>
+    </el-drawer>
   </div>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onActivated, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { MagicStick } from '@element-plus/icons-vue'
+import { MagicStick, Setting } from '@element-plus/icons-vue'
 import { aiApi, jobApi, resumeApi } from '@/api'
 import { scoreColor } from '@/utils/theme'
 
@@ -157,7 +220,19 @@ const route = useRoute()
 const tab = ref('jd')
 const jobs = ref([])
 const resumes = ref([])
-const aiMode = reactive({ mock: true, model: 'mock-local' })
+const aiMode = reactive({ mock: true, model: 'mock-local', provider: 'OPENAI', apiMode: 'CHAT_COMPLETIONS', hasApiKey: false, apiKeyMasked: '' })
+const configDrawer = ref(false)
+const savingConfig = ref(false)
+const testingConfig = ref(false)
+const providers = [
+  { label: 'OpenAI', value: 'OPENAI', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini' },
+  { label: 'DeepSeek', value: 'DEEPSEEK', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
+  { label: '通义千问', value: 'QWEN', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-plus' },
+  { label: 'Moonshot', value: 'MOONSHOT', baseUrl: 'https://api.moonshot.cn/v1', model: 'moonshot-v1-8k' },
+  { label: 'Ollama', value: 'OLLAMA', baseUrl: 'http://localhost:11434/v1', model: 'qwen2.5' },
+  { label: '其他兼容厂商', value: 'CUSTOM', baseUrl: '', model: '' }
+]
+const configForm = reactive({ provider: 'OPENAI', apiMode: 'CHAT_COMPLETIONS', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini', apiKey: '', enabled: true })
 const categoryOptions = ['Java基础', 'Spring Boot', 'MySQL', 'Redis', '项目', 'HR']
 
 const jd = reactive({ jobId: null, text: '', loading: false, result: null })
@@ -168,6 +243,62 @@ const quiz = reactive({
 })
 
 const difficultyLabel = (value) => ({ EASY: '简单', MEDIUM: '中等', HARD: '困难' }[value] || value)
+const providerLabel = (value) => providers.find((item) => item.value === value)?.label || value
+const modeLabel = (value) => value === 'RESPONSES' ? 'Responses' : 'Chat'
+
+function applyProviderPreset(value) {
+  const preset = providers.find((item) => item.value === value)
+  if (preset && value !== 'CUSTOM') {
+    configForm.baseUrl = preset.baseUrl
+    configForm.model = preset.model
+  }
+}
+
+function fillConfig(value) {
+  if (!value) return
+  Object.assign(aiMode, value)
+  Object.assign(configForm, {
+    provider: value.provider || 'OPENAI',
+    apiMode: value.apiMode || 'CHAT_COMPLETIONS',
+    baseUrl: value.baseUrl || 'https://api.openai.com/v1',
+    model: value.model === 'mock-local' ? 'gpt-4.1-mini' : value.model,
+    apiKey: '',
+    enabled: value.enabled !== false
+  })
+}
+
+function openConfig() {
+  configDrawer.value = true
+}
+
+async function saveConfig(closeDrawer = false) {
+  if (!configForm.baseUrl.trim() || !configForm.model.trim()) {
+    ElMessage.warning('请填写 Base URL 和模型名称')
+    return false
+  }
+  savingConfig.value = true
+  try {
+    const value = await aiApi.saveConfig({ ...configForm })
+    fillConfig(value)
+    ElMessage.success('模型配置已安全保存')
+    if (closeDrawer) configDrawer.value = false
+    return true
+  } finally {
+    savingConfig.value = false
+  }
+}
+
+async function testConnection() {
+  testingConfig.value = true
+  try {
+    const saved = await saveConfig(false)
+    if (!saved) return
+    const message = await aiApi.testConfig()
+    ElMessage.success(message)
+  } finally {
+    testingConfig.value = false
+  }
+}
 
 async function runAnalyzeJd() {
   if (!jd.jobId && !jd.text.trim()) {
@@ -228,10 +359,7 @@ async function loadBaseData() {
   ])
   jobs.value = jobPage.records
   resumes.value = resumeList
-  if (aiConfig) {
-    aiMode.mock = aiConfig.mock
-    aiMode.model = aiConfig.model
-  }
+  fillConfig(aiConfig)
 
   const defaultResume = resumes.value.find((item) => item.isDefault === 1) || resumes.value[0]
   if (defaultResume) {
@@ -249,13 +377,80 @@ async function loadBaseData() {
   }
 }
 
+// keep-alive 缓存后再次进入不会触发 onMounted：这里只刷新职位/简历下拉数据，
+// 不重跑 loadBaseData，避免把用户已选中的职位或简历重置掉
+async function refreshOptions() {
+  const [jobPage, resumeList] = await Promise.all([
+    jobApi.page({ pageNum: 1, pageSize: 100 }),
+    resumeApi.all()
+  ])
+  jobs.value = jobPage.records
+  resumes.value = resumeList
+}
+
 onMounted(loadBaseData)
+onActivated(refreshOptions)
 </script>
 
 <style scoped>
+.ai-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 268px;
+  gap: 14px;
+  align-items: start;
+}
+
+.config-intro { display: flex; gap: 12px; margin-bottom: 22px; padding: 14px; border-radius: 10px; background: var(--brand-softer); }
+.config-intro-icon { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 9px; background: var(--brand); color: #fff; }
+.config-intro strong { font-size: 14px; }
+.config-intro p { margin: 4px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.55; }
+.config-form :deep(.el-form-item) { margin-bottom: 20px; }
+.mode-picker { width: 100%; }
+.mode-picker :deep(.el-radio-button) { flex: 1; }
+.mode-picker :deep(.el-radio-button__inner) { width: 100%; }
+.field-hint { margin-top: 7px; color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
+.config-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+.ai-tabs { min-width: 0; }
+
 .ai-tabs :deep(.el-tabs__header) {
   margin-bottom: 14px;
 }
+
+.ai-tabs :deep(.el-tabs__nav-wrap::after) { height: 1px; background: var(--border); }
+.ai-tabs :deep(.toolbar) { padding: 0; border: 0; box-shadow: none; background: none; }
+
+.ai-guide {
+  position: sticky;
+  top: 18px;
+  overflow: hidden;
+  padding: 22px 20px;
+  border: 1px solid #dfe8ff;
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 100% 0, rgba(59,114,245,.14), transparent 42%),
+    linear-gradient(145deg, #f8faff, #eef3ff);
+  color: var(--text-primary);
+}
+
+.guide-mark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 30px;
+  border-radius: 10px;
+  background: var(--brand);
+  color: white;
+  box-shadow: 0 8px 18px rgba(59,114,245,.24);
+}
+
+.guide-eyebrow { color: var(--brand); font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+.ai-guide h3 { margin: 7px 0 18px; font-size: 17px; line-height: 1.45; }
+.ai-guide ul { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.ai-guide li { display: flex; gap: 9px; color: var(--text-regular); font-size: 12px; line-height: 1.55; }
+.ai-guide li span { color: var(--brand); font-size: 10px; font-weight: 700; }
+.guide-tip { margin-top: 22px; padding-top: 14px; border-top: 1px solid #dce6fb; color: var(--text-secondary); font-size: 11px; line-height: 1.6; }
 
 .section-title {
   font-weight: 600;
@@ -273,5 +468,10 @@ onMounted(loadBaseData)
   line-height: 1.9;
   color: #4b5568;
   font-size: 13px;
+}
+
+@media (max-width: 1100px) {
+  .ai-workspace { grid-template-columns: 1fr; }
+  .ai-guide { position: static; }
 }
 </style>

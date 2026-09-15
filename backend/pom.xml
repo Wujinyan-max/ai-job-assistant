@@ -23,6 +23,8 @@
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
         <jjwt.version>0.12.5</jjwt.version>
         <knife4j.version>4.5.0</knife4j.version>
+        <pdfbox.version>3.0.2</pdfbox.version>
+        <poi.version>5.2.5</poi.version>
     </properties>
 
     <dependencies>
@@ -78,6 +80,18 @@
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
             <version>${knife4j.version}</version>
+        </dependency>
+
+        <!-- 简历文件导入：PDF 用 PDFBox，DOCX 用 POI 抽文字 -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
         </dependency>
 
         <!-- Lombok -->

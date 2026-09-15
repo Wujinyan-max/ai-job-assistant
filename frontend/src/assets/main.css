@@ -12,8 +12,8 @@
   --brand-softer: #f0f5fe;
 
   /* 中性色：整体偏冷 */
-  --page-bg: #f3f6fa;
-  --sider-bg: #f1f4f9;
+  --page-bg: #f4f7fb;
+  --sider-bg: #f7f9fd;
   --card-bg: #ffffff;
   --text-primary: #0f1435;
   --text-regular: #4b5568;
@@ -34,14 +34,15 @@
 
   /* 形状与阴影 */
   --radius-sm: 8px;
-  --radius: 12px;
-  --radius-lg: 16px;
+  --radius: 10px;
+  --radius-lg: 14px;
   --shadow-xs: 0 1px 2px rgba(15, 20, 53, 0.04);
   --shadow-sm: 0 1px 2px rgba(15, 20, 53, 0.04), 0 2px 8px -2px rgba(15, 20, 53, 0.06);
   --shadow: 0 1px 3px rgba(15, 20, 53, 0.05), 0 8px 24px -12px rgba(15, 20, 53, 0.12);
 
-  --sider-width: 240px;
-  --header-height: 60px;
+  --sider-width: 196px;
+  --header-height: 56px;
+  --content-max: 1440px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -77,8 +78,7 @@
 
   --el-border-radius-base: 8px;
   --el-border-radius-small: 6px;
-  --el-font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
-    'Microsoft YaHei', Arial, sans-serif;
+  --el-font-family: 'Avenir Next', 'PingFang SC', 'Microsoft YaHei UI', sans-serif;
 }
 
 /* ---------------------------------------------------------------------------
@@ -125,20 +125,31 @@ body {
    页面骨架
    ------------------------------------------------------------------------- */
 .page {
-  padding: 20px 24px 28px;
+  width: min(100%, var(--content-max));
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 18px 20px 28px;
+  animation: page-enter 0.38s cubic-bezier(.2,.7,.2,1) both;
 }
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter { animation: page-enter 0.38s cubic-bezier(.2,.7,.2,1) both; }
 
 .page-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .page-title {
-  font-size: 20px;
-  font-weight: 650;
+  font-size: 19px;
+  font-weight: 700;
   letter-spacing: -0.2px;
   color: var(--text-primary);
   margin: 0;
@@ -155,7 +166,13 @@ body {
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+  backdrop-filter: blur(8px);
 }
 
 /* ---------------------------------------------------------------------------
@@ -165,7 +182,7 @@ body {
   background: var(--card-bg);
   border: 1px solid var(--border-light);
   border-radius: var(--radius);
-  padding: 18px 20px;
+  padding: 16px 18px;
   box-shadow: var(--shadow-xs);
 }
 
@@ -188,7 +205,7 @@ body {
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
 .stat-card {
@@ -196,7 +213,7 @@ body {
   background: var(--card-bg);
   border: 1px solid var(--border-light);
   border-radius: var(--radius);
-  padding: 18px 20px;
+  padding: 14px 16px;
   box-shadow: var(--shadow-xs);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
@@ -237,7 +254,7 @@ body {
 .stat-icon.is-danger  { background: var(--danger-soft);  color: var(--danger); }
 
 .stat-value {
-  font-size: 28px;
+  font-size: 25px;
   font-weight: 650;
   letter-spacing: -0.5px;
   color: var(--text-primary);
@@ -257,7 +274,7 @@ body {
 
 .chart {
   width: 100%;
-  height: 320px;
+  height: 280px;
 }
 
 .muted {
@@ -296,6 +313,11 @@ body {
 
 .el-table th.el-table__cell {
   font-weight: 600;
+  height: 42px;
+}
+
+.el-table td.el-table__cell {
+  padding: 10px 0;
 }
 
 .el-table--border,
@@ -352,4 +374,14 @@ body {
 .el-empty__description {
   color: var(--text-secondary);
   font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  :root { --sider-width: 72px; }
+  .page { padding: 16px; }
+  .toolbar { padding: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page, .page-enter { animation: none; }
 }

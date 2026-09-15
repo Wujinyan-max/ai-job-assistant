@@ -1,10 +1,17 @@
 <template>
   <div class="page">
+    <div class="page-header">
+      <div><h2 class="page-title">简历管理</h2><div class="page-subtitle">支持多份简历，针对不同岗位灵活切换</div></div>
+    </div>
     <div class="toolbar">
       <el-input v-model="query.keyword" placeholder="搜索简历名称 / 技能" clearable style="width: 240px"
                 @keyup.enter="load" @clear="load" />
       <el-button type="primary" :icon="Search" @click="load">查询</el-button>
       <div style="flex: 1"></div>
+      <el-upload ref="uploadRef" :auto-upload="false" :show-file-list="false"
+                 accept=".pdf,.docx,.txt,.md" :on-change="onFileChange">
+        <el-button :icon="Upload" :loading="importing">导入简历</el-button>
+      </el-upload>
       <el-button type="primary" :icon="Plus" @click="openDialog()">新增简历</el-button>
     </div>
 
@@ -44,6 +51,9 @@
                    v-model:current-page="query.pageNum" @current-change="load" />
 
     <el-dialog v-model="dialog.visible" :title="dialog.id ? '编辑简历' : '新增简历'" width="720px" top="6vh">
+      <el-alert v-if="importInfo" class="import-alert" type="success" show-icon :closable="false"
+                :title="`已从《${importInfo.fileName}》读取到 ${importInfo.textLength} 字`"
+                :description="`自动填充：${importInfo.filledFields.join('、')}，请核对无误后再保存`" />
       <el-form ref="formRef" :model="form" :rules="rules" label-width="88px">
         <el-form-item label="简历名称" prop="title">
           <el-input v-model="form.title" placeholder="例如：Java 后端-社招版" />
@@ -86,16 +96,24 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onActivated, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search } from '@element-plus/icons-vue'
+import { Plus, Search, Upload } from '@element-plus/icons-vue'
 import { resumeApi } from '@/api'
+
+/** 与后端 multipart 限制保持一致，避免白传一次超大文件 */
+const MAX_IMPORT_SIZE = 10 * 1024 * 1024
+const IMPORT_EXTENSIONS = ['pdf', 'docx', 'txt', 'md']
 
 const loading = ref(false)
 const saving = ref(false)
+const importing = ref(false)
 const rows = ref([])
 const total = ref(0)
 const formRef = ref()
+const uploadRef = ref()
+/** 正在导入的文件解析结果，用来在表单顶部提示用户核对 */
+const importInfo = ref(null)
 
 const query = reactive({ pageNum: 1, pageSize: 12, keyword: '' })
 const dialog = reactive({ visible: false, id: null })
@@ -123,6 +141,7 @@ async function load() {
 }
 
 function openDialog(row) {
+  importInfo.value = null
   dialog.id = row?.id ?? null
   dialog.visible = true
   Object.assign(form, {
@@ -136,6 +155,58 @@ function openDialog(row) {
     summary: row?.summary || '',
     content: row?.content || '',
     isDefault: row?.isDefault === 1
+  })
+}
+
+/** 选完文件先做本地校验，再交给后端解析，解析结果直接回填到「新增简历」表单 */
+async function onFileChange(uploadFile) {
+  const file = uploadFile?.raw
+  uploadRef.value?.clearFiles()
+  if (!file) {
+    return
+  }
+  const extension = (file.name.split('.').pop() || '').toLowerCase()
+  if (extension === 'doc') {
+    ElMessage.warning('暂不支持 .doc 老格式，请在 Word 里另存为 .docx 或 PDF 后再导入')
+    return
+  }
+  if (!IMPORT_EXTENSIONS.includes(extension)) {
+    ElMessage.warning('请上传 PDF、DOCX 或 TXT 格式的简历文件')
+    return
+  }
+  if (file.size > MAX_IMPORT_SIZE) {
+    ElMessage.warning('文件过大，请上传 10MB 以内的简历')
+    return
+  }
+
+  importing.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const data = await resumeApi.importFile(formData)
+    applyImport(data)
+    ElMessage.success(`已解析《${data.fileName}》，请核对后保存`)
+  } finally {
+    importing.value = false
+  }
+}
+
+function applyImport(data) {
+  importInfo.value = data
+  dialog.id = null
+  dialog.visible = true
+  Object.assign(form, {
+    title: data.title || data.fileName || '',
+    name: data.name || '',
+    phone: data.phone || '',
+    email: data.email || '',
+    education: data.education || '',
+    workYears: data.workYears ?? 0,
+    skills: data.skills || '',
+    summary: data.summary || '',
+    content: data.content || '',
+    // 第一份简历顺手设为默认，省得用户再点一次「设为默认」
+    isDefault: rows.value.length === 0
   })
 }
 
@@ -170,19 +241,41 @@ async function onDelete(row) {
 }
 
 onMounted(load)
+onActivated(load)
 </script>
 
 <style scoped>
+.import-alert {
+  margin-bottom: 14px;
+}
+
 .resume-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
 .resume-card {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.resume-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(var(--brand), #8ab0ff);
+  opacity: .85;
+}
+
+.resume-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
 }
 
 .resume-title {

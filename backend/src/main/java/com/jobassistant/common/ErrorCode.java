@@ -35,6 +35,10 @@ public enum ErrorCode {
     DATA_NOT_BELONG_TO_USER(2008, "无权操作他人的数据"),
     QUESTION_NOT_FOUND(2009, "面试题不存在"),
 
+    RESUME_UNSUPPORTED_TYPE(2010, "暂不支持该文件格式，请上传 PDF、DOCX 或 TXT 简历"),
+    RESUME_PARSE_FAILED(2011, "简历文件解析失败，请确认上传的是文字版简历"),
+    FILE_TOO_LARGE(2012, "文件过大，请上传 10MB 以内的文件"),
+
     AI_DISABLED(6001, "AI 能力未开启"),
     AI_CALL_FAILED(6002, "AI 服务调用失败，请稍后重试"),
     AI_PARSE_FAILED(6003, "AI 返回内容无法解析"),

@@ -1,5 +1,8 @@
 <template>
   <div class="page">
+    <div class="page-header">
+      <div><h2 class="page-title">面试管理</h2><div class="page-subtitle">安排面试日程，沉淀每一轮复盘</div></div>
+    </div>
     <div class="toolbar">
       <el-input v-model="query.keyword" placeholder="搜索职位 / 公司 / 面试官" clearable style="width: 240px"
                 @keyup.enter="load" @clear="load" />
@@ -106,7 +109,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onActivated, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { interviewApi } from '@/api'
@@ -191,4 +194,5 @@ async function onDelete(row) {
 }
 
 onMounted(load)
+onActivated(load)
 </script>

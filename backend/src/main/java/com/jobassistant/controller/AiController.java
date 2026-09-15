@@ -2,6 +2,7 @@ package com.jobassistant.controller;
 
 import com.jobassistant.common.Result;
 import com.jobassistant.dto.GenerateQuestionDTO;
+import com.jobassistant.dto.AiConfigSaveDTO;
 import com.jobassistant.dto.JdAnalyzeDTO;
 import com.jobassistant.dto.ResumeMatchDTO;
 import com.jobassistant.entity.AiAnalysis;
@@ -15,10 +16,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
 
 import java.util.List;
 
@@ -63,5 +66,17 @@ public class AiController {
     @GetMapping("/config")
     public Result<AiConfigVO> config() {
         return Result.success(aiService.config());
+    }
+
+    @Operation(summary = "保存当前用户的 AI 配置")
+    @PutMapping("/config")
+    public Result<AiConfigVO> saveConfig(@Valid @RequestBody AiConfigSaveDTO dto) {
+        return Result.success(aiService.saveConfig(dto));
+    }
+
+    @Operation(summary = "测试当前用户的 AI 配置")
+    @PostMapping("/config/test")
+    public Result<String> testConfig() {
+        return Result.success(aiService.testConfig());
     }
 }

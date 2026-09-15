@@ -10,10 +10,20 @@ public record AiConfigVO(
         @Schema(description = "AI 能力是否开启")
         boolean enabled,
 
+        String provider,
+
+        String apiMode,
+
+        String baseUrl,
+
         @Schema(description = "当前使用的模型名")
         String model,
 
         @Schema(description = "是否运行在本地模拟模式（未配置 ai.api-key 时为 true）")
-        boolean mock
+        boolean mock,
+
+        boolean hasApiKey,
+
+        String apiKeyMasked
 ) {
 }

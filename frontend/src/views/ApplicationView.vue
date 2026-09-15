@@ -1,5 +1,8 @@
 <template>
   <div class="page">
+    <div class="page-header">
+      <div><h2 class="page-title">投递记录</h2><div class="page-subtitle">追踪每一次申请、渠道与状态变化</div></div>
+    </div>
     <div class="toolbar">
       <el-input v-model="query.keyword" placeholder="搜索职位 / 公司" clearable style="width: 220px"
                 @keyup.enter="load" @clear="load" />
@@ -125,7 +128,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onActivated, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Grid, Plus, Search } from '@element-plus/icons-vue'
 import { applicationApi, interviewApi, jobApi, resumeApi } from '@/api'
@@ -247,6 +250,12 @@ async function onDelete(row) {
 }
 
 onMounted(() => {
+  load()
+  loadOptions()
+})
+
+// keep-alive 缓存后再次进入不会触发 onMounted，需要在这里刷新列表和下拉数据
+onActivated(() => {
   load()
   loadOptions()
 })

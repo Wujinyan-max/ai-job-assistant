@@ -45,7 +45,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onActivated, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ArrowDown, Refresh } from '@element-plus/icons-vue'
 import { applicationApi } from '@/api'
@@ -75,20 +75,23 @@ async function move(item, target) {
 }
 
 onMounted(load)
+onActivated(load)
 </script>
 
 <style scoped>
 .board {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   overflow-x: auto;
   padding-bottom: 12px;
   align-items: flex-start;
 }
 
 .column {
-  flex: 0 0 236px;
-  background: #f0f3f8;
+  position: relative;
+  flex: 0 0 218px;
+  background: #eef2f8;
+  border: 1px solid #e8edf5;
   border-radius: 10px;
   padding: 10px;
   min-height: 220px;
@@ -98,7 +101,7 @@ onMounted(load)
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 4px 10px;
+  padding: 1px 3px 9px;
   font-size: 13px;
   font-weight: 600;
 }
@@ -125,10 +128,18 @@ onMounted(load)
 }
 
 .kanban-card {
+  position: relative;
   background: #fff;
+  border: 1px solid #e9edf4;
   border-radius: 8px;
   padding: 10px 12px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 2px 8px rgba(28, 47, 87, 0.06);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.kanban-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(28, 47, 87, 0.1);
 }
 
 .kanban-title {
@@ -150,4 +161,6 @@ onMounted(load)
   font-size: 12px;
   margin: 8px 0 4px;
 }
+
+.board::-webkit-scrollbar { height: 6px; }
 </style>

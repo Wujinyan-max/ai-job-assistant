@@ -14,9 +14,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 大模型调用客户端，兼容 OpenAI 协议。
@@ -33,35 +30,42 @@ public class AiClient {
     private final AiProperties aiProperties;
     private final MockAiEngine mockAiEngine;
     private final ObjectMapper objectMapper;
-
-    private volatile RestClient restClient;
+    private final AiProtocolCodec protocolCodec;
 
     public AiReply chat(AiRequest request) {
         if (!aiProperties.isEnabled()) {
             throw new BusinessException(ErrorCode.AI_DISABLED);
         }
-        if (!aiProperties.hasApiKey()) {
+        return chat(request, new AiRuntimeConfig("OPENAI", AiProtocolCodec.CHAT_COMPLETIONS,
+                aiProperties.getBaseUrl(), aiProperties.getApiKey(), aiProperties.getModel(),
+                aiProperties.getTimeoutSeconds()));
+    }
+
+    public AiReply chat(AiRequest request, AiRuntimeConfig config) {
+        if (config == null || config.apiKey() == null || config.apiKey().isBlank()) {
             log.info("未配置 ai.api-key，使用本地模拟引擎处理任务 {}", request.task());
             return new AiReply(mockAiEngine.reply(request), MOCK_MODEL, true);
         }
 
+        protocolCodec.validateMode(config.apiMode());
+
         long start = System.currentTimeMillis();
         try {
-            JsonNode response = restClient().post()
-                    .uri(chatCompletionsUrl())
+            JsonNode response = restClient(config).post()
+                    .uri(protocolCodec.endpoint(config))
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(buildBody(request))
+                    .body(protocolCodec.buildBody(config, request))
                     .retrieve()
                     .body(JsonNode.class);
 
-            String content = response == null ? null
-                    : response.path("choices").path(0).path("message").path("content").asText(null);
+            String content = protocolCodec.extractText(config.apiMode(), response);
             if (content == null || content.isBlank()) {
                 throw new BusinessException(ErrorCode.AI_CALL_FAILED, "AI 返回内容为空");
             }
-            log.info("AI 调用完成，task={}, model={}, 耗时 {}ms", request.task(), aiProperties.getModel(),
+            log.info("AI 调用完成，task={}, provider={}, mode={}, model={}, 耗时 {}ms",
+                    request.task(), config.provider(), config.apiMode(), config.model(),
                     System.currentTimeMillis() - start);
-            return new AiReply(content, aiProperties.getModel(), false);
+            return new AiReply(content, config.model(), false);
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
@@ -105,41 +109,14 @@ public class AiClient {
         return text.substring(start, end + 1);
     }
 
-    private Map<String, Object> buildBody(AiRequest request) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("model", aiProperties.getModel());
-        body.put("temperature", 0.2);
-        body.put("messages", List.of(
-                Map.of("role", "system", "content", request.systemPrompt()),
-                Map.of("role", "user", "content", request.userPrompt())));
-        // 让模型以 JSON 形式输出，省掉后端正则抠字段的麻烦
-        body.put("response_format", Map.of("type", "json_object"));
-        return body;
-    }
-
-    private String chatCompletionsUrl() {
-        String baseUrl = aiProperties.getBaseUrl();
-        while (baseUrl.endsWith("/")) {
-            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
-        }
-        return baseUrl + "/chat/completions";
-    }
-
-    private RestClient restClient() {
-        if (restClient == null) {
-            synchronized (this) {
-                if (restClient == null) {
-                    SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-                    factory.setConnectTimeout(Duration.ofSeconds(10));
-                    factory.setReadTimeout(Duration.ofSeconds(aiProperties.getTimeoutSeconds()));
-                    restClient = RestClient.builder()
-                            .requestFactory(factory)
-                            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + aiProperties.getApiKey())
-                            .build();
-                }
-            }
-        }
-        return restClient;
+    private RestClient restClient(AiRuntimeConfig config) {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(Duration.ofSeconds(10));
+        factory.setReadTimeout(Duration.ofSeconds(config.timeoutSeconds()));
+        return RestClient.builder()
+                .requestFactory(factory)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + config.apiKey())
+                .build();
     }
 
     private static String abbreviate(String text) {

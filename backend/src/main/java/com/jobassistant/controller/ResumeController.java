@@ -4,7 +4,9 @@ import com.jobassistant.common.PageResult;
 import com.jobassistant.common.Result;
 import com.jobassistant.dto.ResumeDTO;
 import com.jobassistant.entity.Resume;
+import com.jobassistant.service.ResumeImportService;
 import com.jobassistant.service.ResumeService;
+import com.jobassistant.vo.ResumeImportVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -28,6 +31,8 @@ import java.util.List;
 public class ResumeController {
 
     private final ResumeService resumeService;
+
+    private final ResumeImportService resumeImportService;
 
     @Operation(summary = "分页查询简历")
     @GetMapping
@@ -74,5 +79,11 @@ public class ResumeController {
     public Result<Void> setDefault(@PathVariable Long id) {
         resumeService.setDefault(id);
         return Result.success();
+    }
+
+    @Operation(summary = "导入简历文件", description = "上传 PDF / DOCX / TXT 简历，解析出姓名、联系方式、学历、技能等信息供表单回填")
+    @PostMapping("/import")
+    public Result<ResumeImportVO> importFile(@RequestParam("file") MultipartFile file) {
+        return Result.success(resumeImportService.parse(file));
     }
 }
