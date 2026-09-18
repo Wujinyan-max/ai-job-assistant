@@ -589,7 +589,8 @@ ai-job-assistant/
 │   └── schema.sql                 # 8 张表的建表脚本
 ├── scripts/
 │   ├── seed-demo.ps1              # 幂等的演示数据种子脚本
-│   └── smoke-prd.ps1              # 按产品需求文档逐项冒烟（跑完自动清理数据）
+│   ├── smoke-prd.ps1              # 按产品需求文档逐项冒烟（跑完自动清理数据）
+│   └── make-screenshots.cjs       # 重新生成 README 功能截图（需后端 + 网关在跑）
 ├── docs/
 │   └── screenshots/               # README 用到的截图
 ├── backend/
