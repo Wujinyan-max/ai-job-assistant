@@ -1,7 +1,8 @@
 <template>
   <div class="page">
     <div class="page-header">
-      <div><h2 class="page-title">公司管理</h2><div class="page-subtitle">维护目标公司资料与当前跟进状态</div></div>
+      <div><div class="page-kicker">Companies</div>
+        <h2 class="page-title">公司管理</h2><div class="page-subtitle">维护目标公司资料与当前跟进状态</div></div>
     </div>
     <div class="toolbar">
       <el-input v-model="query.keyword" placeholder="搜索公司名称 / 行业" clearable style="width: 240px"
@@ -30,8 +31,10 @@
         <el-table-column prop="remark" label="备注" min-width="160" show-overflow-tooltip />
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
-            <el-button link type="danger" @click="onDelete(row)">删除</el-button>
+            <div class="action-bar">
+              <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
+              <el-button link type="danger" @click="onDelete(row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -59,14 +62,15 @@
           <el-input v-model="form.website" placeholder="https://" />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="form.status" style="width: 100%">
+          <el-select v-model="form.status" placeholder="选择公司状态" style="width: 100%">
             <el-option label="目标公司" value="TARGET" />
             <el-option label="已沟通" value="CONTACTED" />
             <el-option label="已放弃" value="CLOSED" />
           </el-select>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="form.remark" type="textarea" :rows="3" maxlength="500" show-word-limit />
+          <el-input v-model="form.remark" type="textarea" :rows="3" maxlength="500" show-word-limit
+                    placeholder="例如：内推人姓名、招聘负责人微信、投递注意事项" />
         </el-form-item>
       </el-form>
       <template #footer>

@@ -3,44 +3,56 @@
    配色参考：浅色侧边栏 + 冷灰底 + 白色卡片 + 蓝色强调
    ========================================================================== */
 :root {
-  /* 品牌色 */
-  --brand: #3b72f5;
-  --brand-hover: #5a8bf7;
-  --brand-active: #2f61d8;
-  --brand-deep: #15329a;
-  --brand-soft: #e4ecfb;   /* 选中态胶囊底色 */
-  --brand-softer: #f0f5fe;
+  /* 品牌色：琥珀金棕，编辑杂志风唯一强调色 */
+  --brand: #9c7c3c;
+  --brand-hover: #b08d47;
+  --brand-active: #84682f;
+  --brand-deep: #5f4a1f;
+  --brand-soft: #f0e9d8;
+  --brand-softer: #faf7ef;
 
-  /* 中性色：整体偏冷 */
-  --page-bg: #f4f7fb;
-  --sider-bg: #f7f9fd;
+  /* 浅色侧边栏（米白） */
+  --sider-bg: #fbfaf8;
+  --sider-border: #e8e6e1;
+  --sider-menu-text: #6b6f76;
+  --sider-menu-active-bg: #edece8;
+  --sider-menu-hover-bg: #f1efe9;
+  --sider-group: #a8a49c;
+  --sider-logo-bg: #1a1d23;
+
+  /* 中性色：米白暖调 */
+  --page-bg: #f6f5f2;
   --card-bg: #ffffff;
-  --text-primary: #0f1435;
-  --text-regular: #4b5568;
-  --text-secondary: #8a90a2;
-  --text-placeholder: #a8aebd;
-  --border: #e6eaf2;
-  --border-light: #eef1f7;
-  --divider: #edeff2;
+  --text-primary: #1a1d23;
+  --text-regular: #3d4148;
+  --text-secondary: #8a8a85;
+  --text-placeholder: #b0aca2;
+  --border: #e8e6e1;
+  --border-light: #eceae5;
+  --divider: #eceae5;
 
-  /* 语义色 */
-  --success: #16a34a;
-  --success-soft: #e6f6ec;
-  --warning: #e8a90c;
-  --warning-soft: #fdf3e0;
-  --danger: #dc4c4c;
-  --danger-soft: #fdeaea;
-  --info-soft: #eef1f7;
+  /* 语义色：低饱和自然系 */
+  --success: #4a7c59;
+  --success-soft: #e8f0ea;
+  --warning: #b5822a;
+  --warning-soft: #f8f0e0;
+  --danger: #b0503c;
+  --danger-soft: #f7eae7;
+  --info-soft: #efede8;
 
   /* 形状与阴影 */
-  --radius-sm: 8px;
-  --radius: 10px;
-  --radius-lg: 14px;
-  --shadow-xs: 0 1px 2px rgba(15, 20, 53, 0.04);
-  --shadow-sm: 0 1px 2px rgba(15, 20, 53, 0.04), 0 2px 8px -2px rgba(15, 20, 53, 0.06);
-  --shadow: 0 1px 3px rgba(15, 20, 53, 0.05), 0 8px 24px -12px rgba(15, 20, 53, 0.12);
+  --radius-sm: 7px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --shadow-xs: 0 1px 2px rgba(26, 29, 35, 0.04);
+  --shadow-sm: 0 1px 2px rgba(26, 29, 35, 0.04), 0 2px 8px -2px rgba(26, 29, 35, 0.06);
+  --shadow: 0 1px 3px rgba(26, 29, 35, 0.05), 0 10px 28px -12px rgba(26, 29, 35, 0.12);
 
-  --sider-width: 196px;
+  /* 字体 */
+  --font-body: 'Avenir Next', 'Inter', 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei UI', sans-serif;
+  --font-display: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', serif;
+
+  --sider-width: 208px;
   --header-height: 56px;
   --content-max: 1440px;
 }
@@ -50,10 +62,10 @@
    ------------------------------------------------------------------------- */
 :root {
   --el-color-primary: var(--brand);
-  --el-color-primary-light-3: #6f9bf8;
-  --el-color-primary-light-5: #9dbcfb;
-  --el-color-primary-light-7: #c8d9fd;
-  --el-color-primary-light-8: #dce7fd;
+  --el-color-primary-light-3: #b3945c;
+  --el-color-primary-light-5: #c9ae82;
+  --el-color-primary-light-7: #e0d0b0;
+  --el-color-primary-light-8: #ece2cd;
   --el-color-primary-light-9: var(--brand-softer);
   --el-color-primary-dark-2: var(--brand-active);
 
@@ -70,15 +82,16 @@
   --el-border-color: var(--border);
   --el-border-color-light: var(--border);
   --el-border-color-lighter: var(--border-light);
-  --el-fill-color-light: #f5f7fb;
-  --el-fill-color-lighter: #f8fafd;
+  --el-fill-color-light: #f3f1ec;
+  --el-fill-color-lighter: #f8f7f3;
   --el-fill-color-blank: var(--card-bg);
   --el-bg-color: var(--card-bg);
   --el-bg-color-page: var(--page-bg);
 
   --el-border-radius-base: 8px;
   --el-border-radius-small: 6px;
-  --el-font-family: 'Avenir Next', 'PingFang SC', 'Microsoft YaHei UI', sans-serif;
+  --el-font-family: var(--font-body);
+  --el-font-size-base: 13px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -109,12 +122,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d3dae6;
+  background: #d5d1c8;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #bcc6d6;
+  background: #c2bdb2;
 }
 
 ::-webkit-scrollbar-track {
@@ -168,7 +181,7 @@ body {
   align-items: center;
   margin-bottom: 12px;
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--border-light);
   border-radius: var(--radius);
   box-shadow: var(--shadow-xs);
@@ -186,10 +199,12 @@ body {
   box-shadow: var(--shadow-xs);
 }
 
-.card + .card {
-  margin-top: 16px;
-}
-
+/*
+ * 这里不要给相邻卡片加 margin-top：卡片现在都放在 grid / flex 容器里，
+ * 间距由容器的 gap 统一控制。再加一条相邻兄弟的 margin，只会命中第 2 张之后的卡片，
+ * 导致同一行里第 1 张卡被撑高、后面的卡整体下沉，看起来大小不一。
+ * 确实需要单独留白的卡片，在模板上写 inline style 更直观。
+ */
 .card-title {
   display: flex;
   align-items: center;
@@ -236,27 +251,23 @@ body {
 }
 
 .stat-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
-  background: var(--info-soft);
-  color: var(--text-regular);
+  font-size: 15px;
+  color: var(--text-placeholder);
   flex: none;
 }
 
-.stat-icon.is-brand   { background: var(--brand-soft);   color: var(--brand); }
-.stat-icon.is-success { background: var(--success-soft); color: var(--success); }
-.stat-icon.is-warning { background: var(--warning-soft); color: var(--warning); }
-.stat-icon.is-danger  { background: var(--danger-soft);  color: var(--danger); }
+.stat-icon.is-brand   { color: var(--brand); }
+.stat-icon.is-success { color: var(--success); }
+.stat-icon.is-warning { color: var(--warning); }
+.stat-icon.is-danger  { color: var(--danger); }
 
 .stat-value {
-  font-size: 25px;
-  font-weight: 650;
-  letter-spacing: -0.5px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -1.2px;
   color: var(--text-primary);
   margin-top: 10px;
   line-height: 1.15;
@@ -287,6 +298,37 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+   操作按钮组
+   表格行、卡片底部统一用这一套：一行排开不换行，避免按钮多的时候
+   最后一个被挤到第二行、孤零零地挂在下面。
+   ------------------------------------------------------------------------- */
+.action-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+/* gap 已经负责间距了，去掉 Element 默认的相邻按钮左边距，避免双重间距 */
+.action-bar .el-button + .el-button {
+  margin-left: 0;
+}
+
+/* 把后面的按钮推到右边：左半边是常用操作，右半边是 AI 与删除 */
+.action-bar .action-gap {
+  flex: 1 1 auto;
+  min-width: 8px;
+}
+
+/* 只放图标的按钮：补齐点击区域，免得比文字按钮矮一截 */
+.action-bar .el-button.is-icon-only {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  flex: none;
+}
+
+/* ---------------------------------------------------------------------------
    Element Plus 细节打磨
    ------------------------------------------------------------------------- */
 .el-button {
@@ -294,7 +336,8 @@ body {
 }
 
 .el-button--primary {
-  box-shadow: 0 1px 2px rgba(59, 114, 245, 0.24);
+  box-shadow: 0 2px 8px rgba(156, 124, 60, 0.28);
+  letter-spacing: 0.02em;
 }
 
 .el-card {
@@ -305,9 +348,9 @@ body {
 
 .el-table {
   --el-table-border-color: var(--border-light);
-  --el-table-header-bg-color: #f7f9fc;
+  --el-table-header-bg-color: #f7f5f1;
   --el-table-header-text-color: var(--text-regular);
-  --el-table-row-hover-bg-color: #f7f9fc;
+  --el-table-row-hover-bg-color: #f6f4ef;
   font-size: 13px;
 }
 
@@ -341,6 +384,7 @@ body {
 .el-dialog,
 .el-drawer {
   border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
 .el-drawer {
@@ -355,7 +399,7 @@ body {
 
 .el-tag--primary.is-plain {
   background: var(--brand-softer);
-  border-color: #d5e2fd;
+  border-color: #e0d0b0;
 }
 
 .el-pagination {
@@ -384,4 +428,102 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .page, .page-enter { animation: none; }
+}
+/* ---------------------------------------------------------------------------
+   页面标题 kicker：分类标签式小字
+   ------------------------------------------------------------------------- */
+.page-kicker {
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+
+/* ---------------------------------------------------------------------------
+   页面标题字体
+   ------------------------------------------------------------------------- */
+.page-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   统计卡片质感提升
+   ------------------------------------------------------------------------- */
+
+
+/* ---------------------------------------------------------------------------
+   卡片标题加竖条
+   ------------------------------------------------------------------------- */
+
+
+/* ---------------------------------------------------------------------------
+   el-button 统一样式
+   ------------------------------------------------------------------------- */
+.el-button {
+  letter-spacing: 0.01em;
+  transition: all 0.18s ease;
+}
+
+
+
+/* ---------------------------------------------------------------------------
+   el-dialog header 分隔线
+   ------------------------------------------------------------------------- */
+.el-dialog__header {
+  border-bottom: 1px solid var(--border-light);
+  margin-right: 0;
+  padding-bottom: 16px;
+}
+
+.el-dialog__body {
+  padding-top: 18px;
+}
+
+/* ---------------------------------------------------------------------------
+   表格行 hover 微调
+   ------------------------------------------------------------------------- */
+.el-table .el-table__row {
+  transition: background-color 0.15s ease;
+}
+
+/* ---------------------------------------------------------------------------
+   工具栏毛玻璃
+   ------------------------------------------------------------------------- */
+.toolbar {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+/* 缺口补全 */
+.gap-section {
+  margin-top: 14px;
+  padding: 14px;
+  background: #f7f5f1;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+}
+.gap-list {
+  margin: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gap-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.gap-skill {
+  flex-shrink: 0;
+  padding-top: 6px;
+  min-width: 120px;
+}
+.gap-fabrication {
+  margin-top: 10px;
 }

@@ -135,5 +135,8 @@ public class ResumeServiceImpl implements ResumeService {
         resume.setSkills(dto.skills());
         resume.setSummary(dto.summary());
         resume.setContent(dto.content());
+        resume.setContentJson(dto.contentJson());
+        resume.setAvatar(dto.avatar());
+        resume.setStyleJson(dto.styleJson());
     }
 }

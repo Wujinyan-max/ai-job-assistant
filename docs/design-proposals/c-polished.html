@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', 'PingFang SC', 'Microsoft YaHei UI', sans-serif;
+    background: #f2f5f9;
+    color: #16192b;
+    height: 900px;
+    display: flex;
+  }
+
+  /* ============ 侧边栏 ============ */
+  .sider {
+    width: 212px;
+    background: linear-gradient(180deg, #16204a 0%, #1e2a5e 100%);
+    padding: 22px 12px;
+    flex-shrink: 0;
+    display: flex; flex-direction: column;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 10px; margin-bottom: 28px;
+  }
+  .logo-mark {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: #fff; color: #1e2a5e;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 700;
+  }
+  .logo-text { font-size: 14px; font-weight: 700; color: #fff; letter-spacing: 0.01em; }
+
+  .menu-item {
+    display: flex; align-items: center; gap: 10px;
+    height: 38px; padding: 0 12px; border-radius: 10px;
+    font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 2px;
+    transition: all 0.15s;
+  }
+  .menu-item .icon { font-size: 15px; opacity: 0.8; }
+  .menu-item.active {
+    background: rgba(255,255,255,0.14);
+    color: #fff; font-weight: 600;
+    backdrop-filter: blur(4px);
+  }
+  .menu-item.active .icon { opacity: 1; }
+
+  .sider-card {
+    margin-top: auto;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 14px;
+    backdrop-filter: blur(8px);
+  }
+  .sider-card-title { font-size: 12px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .sider-card-desc { font-size: 11px; color: rgba(255,255,255,0.5); line-height: 1.5; margin-bottom: 10px; }
+  .sider-card-btn {
+    width: 100%; height: 28px; border-radius: 8px;
+    background: #fff; color: #1e2a5e;
+    font-size: 11.5px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ============ 主区域 ============ */
+  .main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+  .topbar {
+    height: 58px; background: rgba(255,255,255,0.8);
+    border-bottom: 1px solid #e4e9f2;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px;
+    backdrop-filter: blur(12px);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 8px; }
+  .greeting { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
+  .greeting-sub { font-size: 12px; color: #8a90a8; margin-left: 4px; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .search {
+    width: 200px; height: 32px;
+    background: #f2f5f9; border: 1.5px solid transparent; border-radius: 9px;
+    display: flex; align-items: center; padding: 0 12px;
+    font-size: 12px; color: #8a90a8; gap: 6px;
+  }
+  .btn-primary {
+    height: 32px; padding: 0 15px; border-radius: 9px;
+    background: #1e2a5e; color: #fff;
+    font-size: 12.5px; font-weight: 600;
+    display: flex; align-items: center; gap: 5px;
+    box-shadow: 0 2px 8px rgba(30,42,94,0.3);
+  }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #818cf8, #1e2a5e);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #fff;
+    box-shadow: 0 2px 6px rgba(30,42,94,0.25);
+  }
+
+  .content { padding: 24px 28px; overflow: auto; }
+
+  /* ============ 统计卡 ============ */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .stat {
+    background: #fff; border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 3px rgba(22,25,43,0.04), 0 4px 16px -4px rgba(22,25,43,0.06);
+    border: 1px solid rgba(228,233,242,0.8);
+  }
+  .stat-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .stat-label { font-size: 12.5px; color: #8a90a8; font-weight: 500; }
+  .stat-pill {
+    width: 32px; height: 32px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+  }
+  .stat-num { font-size: 30px; font-weight: 700; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+  .stat-foot { font-size: 11.5px; color: #8a90a8; margin-top: 6px; display: flex; align-items: center; gap: 4px; }
+  .stat-foot b { font-weight: 700; }
+  .chip { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 20px; }
+
+  /* ============ 图表 ============ */
+  .charts { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; }
+  .chart-card {
+    background: #fff; border-radius: 16px;
+    padding: 20px 22px;
+    box-shadow: 0 1px 3px rgba(22,25,43,0.04), 0 4px 16px -4px rgba(22,25,43,0.06);
+    border: 1px solid rgba(228,233,242,0.8);
+  }
+  .chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .chart-title { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+  .chart-sub { font-size: 11.5px; color: #8a90a8; margin-top: 1px; }
+  .seg { display: flex; background: #f2f5f9; border-radius: 8px; padding: 3px; gap: 2px; }
+  .seg-item { font-size: 11.5px; padding: 4px 10px; border-radius: 6px; color: #8a90a8; font-weight: 500; }
+  .seg-item.active { background: #fff; color: #16192b; font-weight: 600; box-shadow: 0 1px 3px rgba(22,25,43,0.1); }
+
+  .line-chart { height: 150px; }
+  .line-chart svg { width: 100%; height: 100%; }
+
+  .upcoming { display: flex; flex-direction: column; gap: 8px; }
+  .upcoming-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px;
+    background: #f8fafd;
+    border: 1px solid #eef1f8;
+  }
+  .upcoming-time {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: #ede9fe;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    flex: none;
+  }
+  .upcoming-time .d { font-size: 13px; font-weight: 700; color: #6d28d9; line-height: 1; }
+  .upcoming-time .m { font-size: 9px; color: #8b5cf6; }
+  .upcoming-info { flex: 1; min-width: 0; }
+  .upcoming-company { font-size: 12.5px; font-weight: 600; }
+  .upcoming-job { font-size: 11px; color: #8a90a8; margin-top: 1px; }
+  .upcoming-tag {
+    font-size: 10px; font-weight: 600; padding: 2px 8px;
+    border-radius: 20px; flex: none;
+  }
+
+  .note {
+    margin-top: 18px; padding: 13px 16px;
+    background: #eef4ff; border: 1px solid #dbeafe;
+    border-radius: 12px;
+    font-size: 12px; color: #4b5878; line-height: 1.7;
+  }
+  .note b { color: #1e2a5e; }
+</style>
+</head>
+<body>
+  <aside class="sider">
+    <div class="logo"><div class="logo-mark">◈</div><div class="logo-text">求职管理</div></div>
+    <div class="menu-item active"><span class="icon">◑</span>数据看板</div>
+    <div class="menu-item"><span class="icon">▦</span>求职看板</div>
+    <div class="menu-item"><span class="icon">↗</span>投递记录</div>
+    <div class="menu-item"><span class="icon">◈</span>职位管理</div>
+    <div class="menu-item"><span class="icon">▣</span>公司管理</div>
+    <div class="menu-item"><span class="icon">≡</span>简历管理</div>
+    <div class="menu-item"><span class="icon">◍</span>面试管理</div>
+    <div class="menu-item"><span class="icon">✦</span>AI 助手</div>
+    <div class="menu-item"><span class="icon">◔</span>面试题库</div>
+    <div class="sider-card">
+      <div class="sider-card-title">AI 助手已就绪</div>
+      <div class="sider-card-desc">JD 解析、简历匹配、面试题生成</div>
+      <div class="sider-card-btn">立即使用 →</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div>
+          <span class="greeting">早上好，演示用户</span>
+          <span class="greeting-sub">9月15日 星期一</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="search">⌕ 搜索职位、公司…</div>
+        <div class="btn-primary">+ 新增投递</div>
+        <div class="avatar">演</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-head">
+            <span class="stat-label">总投递</span>
+            <div class="stat-pill" style="background:#eef2ff">↗</div>
+          </div>
+          <div class="stat-num">12</div>
+          <div class="stat-foot"><span class="chip" style="background:#dcfce7;color:#15803d">+3</span>本周新增</div>
+        </div>
+        <div class="stat">
+          <div class="stat-head">
+            <span class="stat-label">进入面试</span>
+            <div class="stat-pill" style="background:#ede9fe">◍</div>
+          </div>
+          <div class="stat-num">4</div>
+          <div class="stat-foot">面试率 <b>33%</b></div>
+        </div>
+        <div class="stat">
+          <div class="stat-head">
+            <span class="stat-label">拿到 Offer</span>
+            <div class="stat-pill" style="background:#dcfce7">◆</div>
+          </div>
+          <div class="stat-num">2</div>
+          <div class="stat-foot">Offer 率 <b>17%</b></div>
+        </div>
+        <div class="stat">
+          <div class="stat-head">
+            <span class="stat-label">被拒绝</span>
+            <div class="stat-pill" style="background:#fee2e2">×</div>
+          </div>
+          <div class="stat-num">3</div>
+          <div class="stat-foot">继续加油</div>
+        </div>
+      </div>
+
+      <div class="charts">
+        <div class="chart-card">
+          <div class="chart-head">
+            <div>
+              <div class="chart-title">投递趋势</div>
+              <div class="chart-sub">近 30 天每日投递数量</div>
+            </div>
+            <div class="seg">
+              <div class="seg-item">7天</div>
+              <div class="seg-item active">30天</div>
+              <div class="seg-item">90天</div>
+            </div>
+          </div>
+          <div class="line-chart">
+            <svg viewBox="0 0 500 150" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="lg2" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#6366f1" stop-opacity="0.15"/>
+                  <stop offset="100%" stop-color="#6366f1" stop-opacity="0.01"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,120 C40,115 60,95 100,90 C140,85 160,105 200,100 C240,95 260,55 300,50 C340,45 360,75 400,65 C440,55 470,35 500,30 L500,150 L0,150 Z" fill="url(#lg2)"/>
+              <path d="M0,120 C40,115 60,95 100,90 C140,85 160,105 200,100 C240,95 260,55 300,50 C340,45 360,75 400,65 C440,55 470,35 500,30" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="300" cy="50" r="4" fill="#fff" stroke="#6366f1" stroke-width="2"/>
+              <circle cx="500" cy="30" r="4" fill="#6366f1" stroke="#fff" stroke-width="2"/>
+            </svg>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head">
+            <div>
+              <div class="chart-title">近期面试</div>
+              <div class="chart-sub">未来 7 天安排</div>
+            </div>
+          </div>
+          <div class="upcoming">
+            <div class="upcoming-item">
+              <div class="upcoming-time"><span class="d">16</span><span class="m">SEP</span></div>
+              <div class="upcoming-info">
+                <div class="upcoming-company">字节跳动</div>
+                <div class="upcoming-job">后端开发 · 一面</div>
+              </div>
+              <span class="upcoming-tag" style="background:#ede9fe;color:#6d28d9">视频</span>
+            </div>
+            <div class="upcoming-item">
+              <div class="upcoming-time" style="background:#dcfce7"><span class="d" style="color:#15803d">18</span><span class="m" style="color:#16a34a">SEP</span></div>
+              <div class="upcoming-info">
+                <div class="upcoming-company">美团</div>
+                <div class="upcoming-job">Java 开发 · 二面</div>
+              </div>
+              <span class="upcoming-tag" style="background:#dcfce7;color:#15803d">现场</span>
+            </div>
+            <div class="upcoming-item">
+              <div class="upcoming-time" style="background:#fef3c7"><span class="d" style="color:#b45309">20</span><span class="m" style="color:#d97706">SEP</span></div>
+              <div class="upcoming-info">
+                <div class="upcoming-company">腾讯</div>
+                <div class="upcoming-job">全栈开发 · HR面</div>
+              </div>
+              <span class="upcoming-tag" style="background:#fef3c7;color:#b45309">电话</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note"><b>设计语言说明：</b>靛蓝渐变侧边栏（#16204a→#1e2a5e）+ 浅蓝灰底、大圆角卡片（16px）+ 柔和长阴影、DM Sans 字体、彩色 pill 图标块 + 小徽章标注涨跌、侧边栏底部放 AI 助手推广卡，整体接近 Notion 2024 / Pitch 的精致 SaaS 感。</div>
+    </div>
+  </div>
+</body>
+</html>

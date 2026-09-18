@@ -43,6 +43,15 @@ public class Resume {
     /** 简历正文，AI 分析的主要输入 */
     private String content;
 
+    /** 结构化简历 JSON（排版导出用），结构见 ResumeStructureVO */
+    private String contentJson;
+
+    /** 头像（data URL），用户导入 PDF 时提取或自行上传 */
+    private String avatar;
+
+    /** 从导入文件里提取到的版式配色 JSON，结构见 ResumeStyleVO */
+    private String styleJson;
+
     /** 是否默认简历 */
     private Integer isDefault;
 

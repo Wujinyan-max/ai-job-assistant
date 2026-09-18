@@ -4,6 +4,7 @@ import com.jobassistant.common.PageResult;
 import com.jobassistant.common.Result;
 import com.jobassistant.entity.InterviewQuestion;
 import com.jobassistant.service.QuestionService;
+import com.jobassistant.vo.QuestionCategoryStatsVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +42,18 @@ public class QuestionController {
     @GetMapping("/categories")
     public Result<List<String>> categories() {
         return Result.success(questionService.categories());
+    }
+
+    @Operation(summary = "按分类统计题目数量（题库首页的分类卡片）")
+    @GetMapping("/category-stats")
+    public Result<List<QuestionCategoryStatsVO>> categoryStats() {
+        return Result.success(questionService.categoryStats());
+    }
+
+    @Operation(summary = "查询题库支持的固定分类（AI 出题时选用）")
+    @GetMapping("/category-options")
+    public Result<List<String>> categoryOptions() {
+        return Result.success(questionService.categoryOptions());
     }
 
     @Operation(summary = "标记是否已掌握")

@@ -2,28 +2,30 @@
   <el-container class="shell">
     <el-aside class="aside">
       <div class="logo">
-        <span class="logo-mark">
-          <el-icon :size="18"><Briefcase /></el-icon>
-        </span>
-        <span class="logo-text">AI 求职管理</span>
+        <img class="logo-mark" src="@/assets/logo-mark.png" alt="职得 JobPath" />
+        <span class="logo-text">职得 JobPath</span>
       </div>
       <el-menu :default-active="route.path" router class="menu">
-        <el-menu-item v-for="item in menus" :key="item.path" :index="item.path">
-          <el-icon><component :is="item.meta.icon" /></el-icon>
-          <span>{{ item.meta.title }}</span>
-        </el-menu-item>
+        <template v-for="group in menuGroups" :key="group.label">
+          <div class="menu-group">{{ group.label }}</div>
+          <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
+            <el-icon><component :is="item.meta.icon" /></el-icon>
+            <span>{{ item.meta.title }}</span>
+          </el-menu-item>
+        </template>
       </el-menu>
     </el-aside>
 
     <el-container class="body">
       <el-header class="header">
-        <div class="header-context">
-          <span class="context-dot"></span>
-          <span>{{ route.meta.title }}</span>
+        <div class="breadcrumb">
+          <span class="breadcrumb-root">工作台</span>
+          <span class="breadcrumb-sep">/</span>
+          <span class="breadcrumb-current">{{ route.meta.title }}</span>
         </div>
         <el-dropdown @command="onCommand">
           <span class="user">
-            <el-avatar :size="30" class="user-avatar">
+            <el-avatar :size="28" class="user-avatar">
               {{ (userStore.user?.nickname || userStore.user?.username || 'U').slice(0, 1) }}
             </el-avatar>
             <span class="user-name">{{ userStore.user?.nickname || userStore.user?.username }}</span>
@@ -59,9 +61,18 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-const menus = computed(() =>
-  router.getRoutes().filter((item) => item.meta?.title && item.meta?.icon && item.path !== '/login')
-)
+const GROUPS = [
+  { label: '工作台', paths: ['/dashboard', '/board', '/applications'] },
+  { label: '资源库', paths: ['/jobs', '/companies', '/resumes', '/interviews'] },
+  { label: '智能', paths: ['/ai', '/questions'] }
+]
+
+const menuGroups = computed(() => {
+  const all = router.getRoutes().filter((r) => r.meta?.title && r.meta?.icon && r.path !== '/login')
+  return GROUPS
+    .map((g) => ({ label: g.label, items: g.paths.map((p) => all.find((r) => r.path === p)).filter(Boolean) }))
+    .filter((g) => g.items.length)
+})
 
 onMounted(() => {
   // 刷新页面后用 token 换回最新的用户信息
@@ -88,7 +99,7 @@ async function onCommand(command) {
 .aside {
   width: var(--sider-width);
   background: var(--sider-bg);
-  border-right: 1px solid var(--divider);
+  border-right: 1px solid var(--sider-border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -98,61 +109,65 @@ async function onCommand(command) {
   height: var(--header-height);
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 14px;
+  gap: 9px;
+  padding: 0 18px;
   flex: none;
 }
 
 .logo-mark {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(59, 114, 245, 0.32);
+  width: 26px;
+  height: 26px;
+  /* 标记本身是透明底的方图，按内容等比缩放，不拉伸 */
+  object-fit: contain;
+  display: block;
   flex: none;
 }
 
 .logo-text {
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--text-primary);
 }
 
 .menu {
   border-right: none;
   background: transparent;
-  padding: 8px 10px 12px;
+  padding: 10px 12px 16px;
   flex: 1;
   overflow-y: auto;
 }
 
-/* 菜单项做成圆角胶囊，选中时浅蓝底 + 蓝色图标 */
+.menu-group {
+  font-size: 10.5px;
+  color: var(--sider-group);
+  letter-spacing: 0.1em;
+  padding: 0 10px;
+  margin: 18px 0 6px;
+  text-transform: uppercase;
+}
+
 .menu :deep(.el-menu-item) {
-  height: 38px;
-  line-height: 38px;
-  margin-bottom: 3px;
-  padding-left: 11px !important;
-  padding-right: 12px !important;
-  border-radius: 10px;
-  color: var(--text-regular);
+  height: 34px;
+  line-height: 34px;
+  margin-bottom: 1px;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+  border-radius: 7px;
+  color: var(--sider-menu-text);
   font-size: 13px;
-  transition: background-color 0.18s ease, color 0.18s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .menu :deep(.el-menu-item .el-icon) {
-  margin-right: 10px;
-  font-size: 17px;
-  color: var(--text-secondary);
-  transition: color 0.18s ease;
+  margin-right: 9px;
+  font-size: 15px;
+  color: var(--sider-group);
+  transition: color 0.15s ease;
 }
 
 .menu :deep(.el-menu-item:hover) {
-  background: #e8edf6;
+  background: var(--sider-menu-hover-bg);
   color: var(--text-primary);
 }
 
@@ -161,13 +176,13 @@ async function onCommand(command) {
 }
 
 .menu :deep(.el-menu-item.is-active) {
-  background: var(--brand-soft);
-  color: var(--brand-deep);
-  font-weight: 600;
+  background: var(--sider-menu-active-bg);
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 .menu :deep(.el-menu-item.is-active .el-icon) {
-  color: var(--brand);
+  color: var(--text-primary);
 }
 
 /* ----------------------------------------------------------------- 右侧 */
@@ -177,29 +192,30 @@ async function onCommand(command) {
 
 .header {
   height: var(--header-height);
-  background: var(--card-bg);
-  border-bottom: 1px solid var(--border-light);
+  background: var(--sider-bg);
+  border-bottom: 1px solid var(--sider-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 28px;
   z-index: 1;
 }
 
-.header-context {
+.breadcrumb {
+  font-size: 12.5px;
+  color: var(--text-placeholder);
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-secondary);
-  font-size: 12px;
 }
 
-.context-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--success);
-  box-shadow: 0 0 0 4px var(--success-soft);
+.breadcrumb-sep {
+  color: var(--text-placeholder);
+}
+
+.breadcrumb-current {
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 .user {
@@ -208,29 +224,30 @@ async function onCommand(command) {
   gap: 9px;
   cursor: pointer;
   outline: none;
-  padding: 5px 10px 5px 5px;
+  padding: 4px 10px 4px 4px;
   border-radius: 20px;
-  transition: background-color 0.18s ease;
+  transition: background-color 0.15s ease;
 }
 
 .user:hover {
-  background: #f5f7fb;
+  background: var(--sider-menu-active-bg);
 }
 
 .user-avatar {
-  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
-  font-size: 13px;
-  font-weight: 600;
+  background: #c8b89a;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
 }
 
 .user-name {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-primary);
 }
 
 .user-caret {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-placeholder);
 }
 
 .main {
@@ -241,9 +258,9 @@ async function onCommand(command) {
 
 @media (max-width: 900px) {
   .logo { justify-content: center; padding: 0; }
-  .logo-text, .menu :deep(.el-menu-item span) { display: none; }
+  .logo-text, .menu :deep(.el-menu-item span), .menu-group { display: none; }
   .menu :deep(.el-menu-item) { justify-content: center; padding: 0 !important; }
   .menu :deep(.el-menu-item .el-icon) { margin: 0; }
-  .header-context { display: none; }
+  .breadcrumb { display: none; }
 }
 </style>

@@ -39,6 +39,9 @@ public class Job {
     /** 最高月薪（K） */
     private Integer salaryMax;
 
+    /** 薪资描述自由文本，如「15-30K·14薪」，优先于数字范围展示 */
+    private String salaryDesc;
+
     private String location;
 
     private String jobUrl;

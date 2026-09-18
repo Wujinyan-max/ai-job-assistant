@@ -1,7 +1,8 @@
 <template>
   <div class="page">
     <div class="page-header">
-      <div><h2 class="page-title">投递记录</h2><div class="page-subtitle">追踪每一次申请、渠道与状态变化</div></div>
+      <div><div class="page-kicker">Applications</div>
+        <h2 class="page-title">投递记录</h2><div class="page-subtitle">追踪每一次申请、渠道与状态变化</div></div>
     </div>
     <div class="toolbar">
       <el-input v-model="query.keyword" placeholder="搜索职位 / 公司" clearable style="width: 220px"
@@ -45,11 +46,13 @@
           </template>
         </el-table-column>
         <el-table-column prop="remark" label="备注" min-width="150" show-overflow-tooltip />
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="184" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openInterview(row)">记录面试</el-button>
-            <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
-            <el-button link type="danger" @click="onDelete(row)">删除</el-button>
+            <div class="action-bar">
+              <el-button link type="primary" @click="openInterview(row)">记录面试</el-button>
+              <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
+              <el-button link type="danger" @click="onDelete(row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -61,6 +64,8 @@
 
     <el-dialog v-model="dialog.visible" :title="dialog.id ? '编辑投递记录' : '新增投递记录'" width="560px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="88px">
+        <el-alert v-if="!hasDefaultResume" type="warning" :closable="false" show-icon
+                  title="未设置默认简历，请手动选择" style="margin-bottom: 14px" />
         <el-form-item label="职位" prop="jobId">
           <el-select v-model="form.jobId" placeholder="选择要投递的职位" filterable style="width: 100%">
             <el-option v-for="item in jobs" :key="item.id" :label="`${item.jobName}（${item.companyName || '未关联公司'}）`" :value="item.id" />
@@ -72,7 +77,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="投递状态">
-          <el-select v-model="form.applicationStatus" style="width: 100%">
+          <el-select v-model="form.applicationStatus" placeholder="选择当前投递进度" style="width: 100%">
             <el-option v-for="(label, value) in statuses" :key="value" :label="label" :value="value" />
           </el-select>
         </el-form-item>
@@ -86,12 +91,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="form.remark" type="textarea" :rows="3" maxlength="500" show-word-limit />
+          <el-input v-model="form.remark" type="textarea" :rows="3" maxlength="500" show-word-limit
+                    placeholder="例如：一面约在下周二、HR 说本周给反馈" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialog.visible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="onSubmit">保存</el-button>
+        <el-button type="primary" :loading="saving" :disabled="submitDisabled" @click="onSubmit">保存</el-button>
       </template>
     </el-dialog>
 
@@ -110,10 +116,10 @@
         </el-form-item>
         <el-form-item label="面试时间">
           <el-date-picker v-model="interviewForm.interviewTime" type="datetime"
-                          value-format="YYYY-MM-DD HH:mm:ss" style="width: 100%" />
+                          value-format="YYYY-MM-DD HH:mm:ss" placeholder="选择面试时间" style="width: 100%" />
         </el-form-item>
         <el-form-item label="面试官">
-          <el-input v-model="interviewForm.interviewer" />
+          <el-input v-model="interviewForm.interviewer" placeholder="例如：王工（可留空）" />
         </el-form-item>
         <el-form-item label="会议链接">
           <el-input v-model="interviewForm.meetingUrl" placeholder="线上会议链接" />
@@ -128,7 +134,7 @@
 </template>
 
 <script setup>
-import { onActivated, onMounted, reactive, ref } from 'vue'
+import { computed, onActivated, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Grid, Plus, Search } from '@element-plus/icons-vue'
 import { applicationApi, interviewApi, jobApi, resumeApi } from '@/api'
@@ -154,6 +160,15 @@ const interviewForm = reactive({
 })
 
 const rules = { jobId: [{ required: true, message: '请选择职位', trigger: 'change' }] }
+
+/** 有没有设过默认简历，决定表单顶部是否要提示用户手动选 */
+const hasDefaultResume = computed(() => resumes.value.some((item) => item.isDefault === 1))
+
+/**
+ * 新增投递必须选简历：编辑器里没选简历直接禁用保存。
+ * 编辑已有记录不受限制，历史数据本来就可能没关联简历。
+ */
+const submitDisabled = computed(() => !dialog.id && !form.resumeId)
 
 async function load() {
   loading.value = true

@@ -24,6 +24,18 @@ public record AiConfigVO(
 
         boolean hasApiKey,
 
-        String apiKeyMasked
+        String apiKeyMasked,
+
+        @Schema(description = "思考模式：DEFAULT 跟随厂商 / OFF 关闭 / ON 开启")
+        String thinkingMode,
+
+        @Schema(description = "输入（缓存未命中）单价，元/百万 tokens，未配置为 null")
+        Double inputPrice,
+
+        @Schema(description = "输入（缓存命中）单价，元/百万 tokens，未配置为 null")
+        Double cachePrice,
+
+        @Schema(description = "输出单价，元/百万 tokens，未配置为 null")
+        Double outputPrice
 ) {
 }

@@ -113,6 +113,7 @@ public class JobServiceImpl implements JobService {
         job.setJobDescription(dto.jobDescription());
         job.setSalaryMin(dto.salaryMin());
         job.setSalaryMax(dto.salaryMax());
+        job.setSalaryDesc(dto.salaryDesc());
         job.setLocation(dto.location());
         job.setJobUrl(dto.jobUrl());
         if (StringUtils.hasText(dto.status())) {

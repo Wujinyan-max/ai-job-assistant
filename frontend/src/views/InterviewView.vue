@@ -1,7 +1,8 @@
 <template>
   <div class="page">
     <div class="page-header">
-      <div><h2 class="page-title">面试管理</h2><div class="page-subtitle">安排面试日程，沉淀每一轮复盘</div></div>
+      <div><div class="page-kicker">Interviews</div>
+        <h2 class="page-title">面试管理</h2><div class="page-subtitle">安排面试日程，沉淀每一轮复盘</div></div>
     </div>
     <div class="toolbar">
       <el-input v-model="query.keyword" placeholder="搜索职位 / 公司 / 面试官" clearable style="width: 240px"
@@ -11,6 +12,9 @@
         <el-option label="通过" value="PASS" />
         <el-option label="未通过" value="FAIL" />
       </el-select>
+      <el-tag v-if="onlyUpcoming" type="warning" effect="light" closable @close="clearRange">
+        只看未来 {{ query.upcomingDays }} 天
+      </el-tag>
       <el-button type="primary" :icon="Search" @click="load">查询</el-button>
     </div>
 
@@ -52,8 +56,10 @@
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
-            <el-button link type="danger" @click="onDelete(row)">删除</el-button>
+            <div class="action-bar">
+              <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
+              <el-button link type="danger" @click="onDelete(row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -66,7 +72,7 @@
     <el-dialog v-model="dialog.visible" title="编辑面试记录" width="560px">
       <el-form :model="form" label-width="88px">
         <el-form-item label="轮次名称">
-          <el-input v-model="form.roundName" />
+          <el-input v-model="form.roundName" placeholder="例如：技术一面" />
         </el-form-item>
         <el-form-item label="面试形式">
           <el-radio-group v-model="form.interviewType">
@@ -77,16 +83,17 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="面试时间">
-          <el-date-picker v-model="form.interviewTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" style="width: 100%" />
+          <el-date-picker v-model="form.interviewTime" type="datetime" value-format="YYYY-MM-DD HH:mm:ss"
+                          placeholder="选择面试时间" style="width: 100%" />
         </el-form-item>
         <el-form-item label="面试官">
-          <el-input v-model="form.interviewer" />
+          <el-input v-model="form.interviewer" placeholder="例如：王工" />
         </el-form-item>
         <el-form-item label="地点">
-          <el-input v-model="form.location" />
+          <el-input v-model="form.location" placeholder="例如：北京·海淀 / 公司 3 号楼" />
         </el-form-item>
         <el-form-item label="会议链接">
-          <el-input v-model="form.meetingUrl" />
+          <el-input v-model="form.meetingUrl" placeholder="线上会议链接，例如 https://meeting.tencent.com/xxx" />
         </el-form-item>
         <el-form-item label="面试结果">
           <el-radio-group v-model="form.result">
@@ -98,6 +105,13 @@
         <el-form-item label="复盘总结">
           <el-input v-model="form.review" type="textarea" :rows="5"
                     placeholder="记下面试官问到的问题、自己答得不好的地方，下次就能针对性准备" />
+          <div class="review-actions">
+            <el-button link type="primary" :icon="MagicStick" :loading="extracting"
+                       :disabled="!canExtract" @click="onExtractQuestions">提取到题库</el-button>
+            <span class="muted" style="font-size: 12px">
+              {{ canExtract ? '把复盘里的问题拆成题库条目，自动关联职位分类' : '复盘写满 20 字后可用' }}
+            </span>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -109,25 +123,53 @@
 </template>
 
 <script setup>
-import { onActivated, onMounted, reactive, ref } from 'vue'
+import { computed, onActivated, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
-import { interviewApi } from '@/api'
+import { MagicStick, Search } from '@element-plus/icons-vue'
+import { aiApi, interviewApi } from '@/api'
+import { ensureLocalAiNotice } from '@/utils/aiLocalNotice'
+
+const router = useRouter()
+const route = useRoute()
 
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref([])
 const total = ref(0)
 const upcoming = ref([])
+const extracting = ref(false)
 
-const query = reactive({ pageNum: 1, pageSize: 10, result: '', keyword: '' })
-const dialog = reactive({ visible: false, id: null })
+/** 从首页红点跳过来时 URL 上带 range=7，直接作为初始筛选条件 */
+const query = reactive({
+  pageNum: 1, pageSize: 10, result: '', keyword: '',
+  upcomingDays: route.query.range ? Number(route.query.range) : null
+})
+const dialog = reactive({ visible: false, id: null, jobId: null })
 const form = reactive({
   applicationId: null, roundName: '', interviewType: 'VIDEO', interviewTime: '',
   interviewer: '', location: '', meetingUrl: '', result: 'PENDING', review: ''
 })
 
 const typeLabel = (type) => ({ PHONE: '电话', VIDEO: '视频', ONSITE: '现场', WRITTEN: '笔试' }[type] || type)
+
+/** 从首页红点跳过来时只看未来 7 天的面试，其它入口进来就是全部 */
+const onlyUpcoming = computed(() => query.upcomingDays != null)
+
+/** URL 上的 range 参数决定是否只显示未来面试，刷新和浏览器返回都能保持 */
+watch(() => route.query.range, (value) => {
+  query.upcomingDays = value ? Number(value) : null
+  query.pageNum = 1
+  load()
+})
+
+/** 取消「只看未来 N 天」，回到全部面试 */
+function clearRange() {
+  router.push({ path: '/interviews', query: {} })
+}
+
+/** 复盘写满 20 字才允许提取，太短的内容拆不出有效题目 */
+const canExtract = computed(() => (form.review || '').trim().length >= 20)
 
 async function load() {
   loading.value = true
@@ -143,6 +185,7 @@ async function load() {
 
 function openDialog(row) {
   dialog.id = row.id
+  dialog.jobId = row.jobId ?? null
   dialog.visible = true
   Object.assign(form, {
     applicationId: row.applicationId,
@@ -160,17 +203,38 @@ function openDialog(row) {
 async function onSubmit() {
   saving.value = true
   try {
-    await interviewApi.update(dialog.id, { ...form, interviewTime: form.interviewTime || null })
+    const payload = { ...form, interviewTime: form.interviewTime || null }
+    const flow = await interviewApi.update(dialog.id, payload)
     ElMessage.success('保存成功')
     dialog.visible = false
+    await saveNextStep(dialog.id, payload, flow)
     load()
   } finally {
     saving.value = false
   }
 }
 
+/**
+ * 面试标记为通过后问一句「然后呢」。
+ * <p>后端只在「从非通过改成通过」时返回 awaitingNextStep，
+ * 所以补复盘内容再保存不会反复弹窗。取消不改任何状态。</p>
+ */
+async function saveNextStep(id, payload, flow) {
+  if (!flow?.awaitingNextStep) {
+    return
+  }
+  const step = await pickNextStep()
+  if (!step) {
+    return
+  }
+  const next = await interviewApi.update(id, { ...payload, nextStep: step })
+  ElMessage.success(flowMessage('PASS', next))
+}
+
 async function changeResult(row, result) {
-  await interviewApi.update(row.id, {
+  // 只有「从非通过改成通过」才需要问下一步，已经是通过时改别的字段不该重复弹窗
+  const step = result === 'PASS' && row.result !== 'PASS' ? await pickNextStep() : ''
+  const flow = await interviewApi.update(row.id, {
     applicationId: row.applicationId,
     roundNo: row.roundNo,
     roundName: row.roundName,
@@ -180,10 +244,38 @@ async function changeResult(row, result) {
     location: row.location,
     meetingUrl: row.meetingUrl,
     review: row.review,
-    result
+    result,
+    nextStep: step
   })
-  ElMessage.success(result === 'FAIL' ? '已标记未通过，投递状态同步为「已拒绝」' : '结果已更新')
+  ElMessage.success(flowMessage(result, flow))
   load()
+}
+
+/** 结果是通过时先问下一步，用户关掉弹窗则保持现状 */
+async function pickNextStep() {
+  try {
+    await ElMessageBox.confirm(
+      '选「已拿 Offer」投递状态会变成 Offer；选「进入下一轮」会自动建一条下一轮面试草稿。',
+      '这轮通过了，下一步是？',
+      { confirmButtonText: '已拿 Offer', cancelButtonText: '进入下一轮', type: 'success',
+        distinguishCancelAndClose: true })
+    return 'OFFER'
+  } catch (action) {
+    return action === 'cancel' ? 'NEXT_ROUND' : ''
+  }
+}
+
+function flowMessage(result, flow) {
+  if (result === 'FAIL') {
+    return '已标记未通过，投递状态同步为「已拒绝」'
+  }
+  if (flow?.nextRoundNo) {
+    return `已创建第 ${flow.nextRoundNo} 轮面试草稿，去补一下时间`
+  }
+  if (flow?.applicationStatusLabel) {
+    return `结果已更新，投递状态为「${flow.applicationStatusLabel}」`
+  }
+  return '结果已更新'
 }
 
 async function onDelete(row) {
@@ -193,6 +285,46 @@ async function onDelete(row) {
   load()
 }
 
+/**
+ * 复盘一键入题库：把复盘文本交给 AI 拆成面试题并落库。
+ * 复盘里提到的职位会一起带过去，题目就挂在这个岗位的分类下。
+ */
+async function onExtractQuestions() {
+  if (!canExtract.value) return
+  const proceed = await ensureLocalAiNotice({
+    onConfigure: () => router.push({ path: '/ai', query: { configure: '1' } })
+  })
+  if (!proceed) return
+  extracting.value = true
+  try {
+    const call = await aiApi.extractQuestions({
+      review: form.review.trim(),
+      jobId: dialog.jobId,
+      save: true
+    })
+    const saved = call.data?.savedCount ?? 0
+    if (!saved) {
+      ElMessage.warning('这段复盘里没有识别出明确的问题，可以把面试官的原话记下来再试')
+      return
+    }
+    ElMessage.success(`已提取 ${saved} 道题到题库`)
+    dialog.visible = false
+    await router.push({ path: '/questions' })
+  } finally {
+    extracting.value = false
+  }
+}
+
 onMounted(load)
+// keep-alive 缓存后再次进入不会触发 onMounted，这里补一次刷新
 onActivated(load)
 </script>
+
+<style scoped>
+.review-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+</style>

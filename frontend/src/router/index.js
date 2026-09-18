@@ -2,6 +2,12 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 
 const routes = [
   {
+    path: '/home',
+    name: 'home',
+    component: () => import('@/views/HomeView.vue'),
+    meta: { public: true, title: '首页' }
+  },
+  {
     path: '/login',
     name: 'login',
     component: () => import('@/views/LoginView.vue'),
@@ -10,7 +16,6 @@ const routes = [
   {
     path: '/',
     component: () => import('@/components/AppLayout.vue'),
-    redirect: '/dashboard',
     children: [
       { path: 'dashboard', name: 'dashboard', component: () => import('@/views/DashboardView.vue'), meta: { title: '数据看板', icon: 'DataAnalysis' } },
       { path: 'companies', name: 'companies', component: () => import('@/views/CompanyView.vue'), meta: { title: '公司管理', icon: 'OfficeBuilding' } },
@@ -34,13 +39,17 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const token = localStorage.getItem('token')
+  // 访问布局根路径：已登录进看板，未登录看首页
+  if (to.path === '/') {
+    return { path: token ? '/dashboard' : '/home' }
+  }
   if (!to.meta.public && !token) {
     return { path: '/login', query: { redirect: to.fullPath } }
   }
   if (to.path === '/login' && token) {
     return { path: '/dashboard' }
   }
-  document.title = to.meta.title ? `${to.meta.title} · AI 求职管理平台` : 'AI 求职管理平台'
+  document.title = to.meta.title ? `${to.meta.title} · 职得 JobPath` : '职得 JobPath'
   return true
 })
 

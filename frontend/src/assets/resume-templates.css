@@ -1,0 +1,522 @@
+/* ---------------------------------------------------------------------------
+   A4 简历模板样式
+   版式参考的开源项目（均为 MIT，允许商用与修改）：
+     jsonresume-theme-class / -even / -actual / -stackoverflow / -elegant
+   样式本身是本项目自己写的，没有复制上游代码。
+   想加模板：在 src/components/resumeTemplates.js 登记，再在这里补一段 .tpl-<id>
+   --------------------------------------------------------------------------- */
+
+/* ------------------------------ 1. 经典单栏 ------------------------------ */
+/* 基础样式（组件里的 .resume-sheet）就是这套版式，这里只把强调色声明出来 */
+.resume-sheet.tpl-classic {
+  --sheet-accent: #2563eb;
+}
+
+/* ------------------------------ 2. 扁平极简 ------------------------------ */
+.resume-sheet.tpl-even {
+  --sheet-accent: #0073aa;
+  display: grid;
+  grid-template-columns: 10.5em 1fr;
+  column-gap: 1.6em;
+  align-content: start;
+  color: #191e23;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.resume-sheet.tpl-even .sheet-header {
+  grid-column: 1 / -1;
+  margin: -14mm -16mm 8mm;
+  padding: 9mm 16mm 7mm;
+  border-bottom: 0;
+  background: #f3f4f5;
+  text-align: center;
+}
+
+.resume-sheet.tpl-even .sheet-name-row,
+.resume-sheet.tpl-even .sheet-contacts {
+  justify-content: center;
+}
+
+.resume-sheet.tpl-even .sheet-name {
+  font-size: 27px;
+  font-weight: 400;
+  letter-spacing: 1px;
+}
+
+.resume-sheet.tpl-even .sheet-label {
+  color: var(--sheet-accent);
+  font-weight: 400;
+}
+
+.resume-sheet.tpl-even .sheet-contacts {
+  color: #6c7781;
+}
+
+/* display:contents 让小节标题和正文各自进网格，标题占左栏、正文占右栏 */
+.resume-sheet.tpl-even .sheet-section {
+  display: contents;
+}
+
+.resume-sheet.tpl-even .sheet-section > .sheet-title,
+.resume-sheet.tpl-even .sheet-section > .sheet-title-bar {
+  grid-column: 1;
+}
+
+.resume-sheet.tpl-even .sheet-section > .sheet-title {
+  margin: 1.5em 0 0;
+  padding: 0;
+  border-left: 0;
+  color: #6c7781;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.resume-sheet.tpl-even .sheet-header + .sheet-section > .sheet-title {
+  margin-top: 0;
+}
+
+.resume-sheet.tpl-even .sheet-section > *:not(.sheet-title):not(.sheet-title-bar) {
+  grid-column: 2;
+}
+
+.resume-sheet.tpl-even .sheet-bullets {
+  padding-left: 16px;
+}
+
+.resume-sheet.tpl-even .sheet-bullets li::marker {
+  color: #6c7781;
+}
+
+/* 技能做成标签块，和左侧标题栏呼应 */
+.resume-sheet.tpl-even .sheet-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.resume-sheet.tpl-even .sheet-skills li {
+  margin: 0;
+  padding: 2px 9px;
+  border-radius: 3px;
+  background: #f3f4f5;
+}
+
+/* ------------------------------ 3. 单色留白 ------------------------------ */
+.resume-sheet.tpl-actual {
+  --sheet-accent: #333333;
+  padding: 18mm 20mm;
+  color: #222;
+  font-size: 12.5px;
+  line-height: 1.75;
+}
+
+.resume-sheet.tpl-actual .sheet-header {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.resume-sheet.tpl-actual .sheet-name {
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.resume-sheet.tpl-actual .sheet-label {
+  color: #555;
+  font-weight: 400;
+}
+
+.resume-sheet.tpl-actual .sheet-contacts {
+  color: #555;
+  gap: 4px 12px;
+}
+
+.resume-sheet.tpl-actual .sheet-section {
+  margin-top: 22px;
+}
+
+.resume-sheet.tpl-actual .sheet-title,
+.resume-sheet.tpl-actual .sheet-title-bar {
+  margin: 0 0 10px;
+  padding: 0 0 5px;
+  border-left: 0;
+  border-bottom: 1px solid #dcdcdc;
+  color: #111;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2.4px;
+}
+
+.resume-sheet.tpl-actual .sheet-item-meta,
+.resume-sheet.tpl-actual .sheet-detail {
+  color: #555;
+}
+
+/* ------------------------------ 4. 左侧深色栏 ---------------------------- */
+.resume-sheet.tpl-sidebar {
+  --sheet-accent: #9fc4f0;
+  position: relative;
+  display: grid;
+  grid-template-columns: 64mm 1fr;
+  grid-auto-flow: row dense;
+  align-content: start;
+  padding: 0;
+  color: #24313f;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+
+/* 深色底用伪元素画满整页高度，比给某一栏上色更稳 */
+.resume-sheet.tpl-sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 64mm;
+  background: #1f2b3e;
+}
+
+.resume-sheet.tpl-sidebar > * {
+  position: relative;
+}
+
+.resume-sheet.tpl-sidebar .sheet-header {
+  grid-column: 1;
+  margin: 0;
+  padding: 16mm 7mm 6mm;
+  border-bottom: 0;
+  color: #fff;
+}
+
+.resume-sheet.tpl-sidebar .sheet-name {
+  color: #fff;
+  font-size: 22px;
+  letter-spacing: 1px;
+}
+
+.resume-sheet.tpl-sidebar .sheet-label {
+  color: var(--sheet-accent);
+  font-size: 13px;
+}
+
+.resume-sheet.tpl-sidebar .sheet-contacts {
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 12px;
+  color: #cfd8e6;
+  font-size: 11.5px;
+}
+
+.resume-sheet.tpl-sidebar .sheet-section {
+  grid-column: 2;
+  margin-top: 14px;
+  padding: 0 14mm 0 10mm;
+}
+
+.resume-sheet.tpl-sidebar .sheet-section:first-of-type {
+  margin-top: 16mm;
+}
+
+/* 技能和荣誉挪到左侧深色栏，dense 排布会自动回填到姓名下面 */
+.resume-sheet.tpl-sidebar [data-block='skills'],
+.resume-sheet.tpl-sidebar [data-block='honors'] {
+  grid-column: 1;
+  margin: 0;
+  padding: 0 7mm 5mm;
+}
+
+.resume-sheet.tpl-sidebar [data-block='skills'] .sheet-title,
+.resume-sheet.tpl-sidebar [data-block='honors'] .sheet-title,
+.resume-sheet.tpl-sidebar [data-block='skills'] .sheet-title-bar,
+.resume-sheet.tpl-sidebar [data-block='honors'] .sheet-title-bar {
+  padding: 0 0 4px;
+  margin-bottom: 8px;
+  border-left: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.resume-sheet.tpl-sidebar [data-block='skills'] .sheet-bullets,
+.resume-sheet.tpl-sidebar [data-block='honors'] .sheet-bullets {
+  padding-left: 14px;
+  color: #cfd8e6;
+  font-size: 11.5px;
+}
+
+.resume-sheet.tpl-sidebar [data-block='skills'] .sheet-bullets li::marker,
+.resume-sheet.tpl-sidebar [data-block='honors'] .sheet-bullets li::marker {
+  color: #6f8099;
+}
+
+/* ------------------------------ 5. 时间轴 -------------------------------- */
+.resume-sheet.tpl-elegant {
+  --sheet-accent: #2f4156;
+  padding: 16mm 16mm 14mm;
+  color: #22303f;
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+
+.resume-sheet.tpl-elegant .sheet-header {
+  padding: 0 0 12px 8mm;
+  border-bottom: 0;
+}
+
+.resume-sheet.tpl-elegant .sheet-name {
+  color: #1b2735;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 3px;
+}
+
+.resume-sheet.tpl-elegant .sheet-label {
+  color: var(--sheet-accent);
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+
+.resume-sheet.tpl-elegant .sheet-contacts {
+  color: #5b6b7c;
+}
+
+.resume-sheet.tpl-elegant .sheet-section {
+  position: relative;
+  margin-top: 20px;
+  padding-left: 8mm;
+}
+
+.resume-sheet.tpl-elegant .sheet-section::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 2px;
+  left: 2.2mm;
+  width: 1px;
+  background: #dbe2ea;
+}
+
+.resume-sheet.tpl-elegant .sheet-title,
+.resume-sheet.tpl-elegant .sheet-title-bar {
+  position: relative;
+  margin: 0 0 10px;
+  padding: 0;
+  border-left: 0;
+  color: #1b2735;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+}
+
+.resume-sheet.tpl-elegant .sheet-title-bar {
+  margin-bottom: 8px;
+}
+
+.resume-sheet.tpl-elegant .sheet-title::before,
+.resume-sheet.tpl-elegant .sheet-title-bar::before {
+  content: '';
+  position: absolute;
+  top: 0.42em;
+  left: calc(-8mm + 2.2mm - 3.5px);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sheet-accent);
+  box-shadow: 0 0 0 3px #fff;
+}
+
+.resume-sheet.tpl-elegant .sheet-item-meta {
+  color: #64748b;
+}
+
+  .resume-sheet.tpl-elegant .sheet-bullets li::marker {
+    color: #94a3b8;
+  }
+
+/* ------------------------------ 6. 原版复刻 ------------------------------ */
+/*
+ * 不是一套固定配色：颜色、页边距、字号都由 --sheet-accent、--sheet-heading、
+ * --sheet-body、--sheet-meta、--sheet-pad、--sheet-font-size、--sheet-band 等变量注入，
+ * 变量值来自 ResumeStyleExtractor 解析用户导入的 PDF（见 ResumeSheet.vue 的 styleVars）。
+ * 这里只定义版式骨架，颜色一律走变量并带兜底值，保证样式数据缺失时也能正常显示。
+ */
+.resume-sheet.tpl-replica {
+  --sheet-band: #333333;
+  --sheet-band-text: #ffffff;
+  --sheet-heading: #333333;
+  --sheet-body: #555555;
+  --sheet-meta: #999999;
+  --sheet-pad: 16mm;
+  --sheet-font-size: 10pt;
+  padding: var(--sheet-pad);
+  color: var(--sheet-body);
+  font-size: var(--sheet-font-size);
+  line-height: 1.7;
+}
+
+/* 深色通栏页眉：负外边距让它顶到纸张边缘，做出整幅出血的效果 */
+.resume-sheet.tpl-replica .sheet-header {
+  position: relative;
+  margin: calc(var(--sheet-pad) * -1) calc(var(--sheet-pad) * -1) 5mm;
+  padding: 8mm var(--sheet-pad) 9mm;
+  border-bottom: 0;
+  text-align: center;
+}
+
+.resume-sheet.tpl-replica.has-header-band .sheet-header {
+  background: var(--sheet-band);
+}
+
+.resume-sheet.tpl-replica.has-header-band .sheet-name,
+.resume-sheet.tpl-replica.has-header-band .sheet-label,
+.resume-sheet.tpl-replica.has-header-band .sheet-contacts {
+  color: var(--sheet-band-text);
+}
+
+/* 头像：打在通栏里，居中或靠左由 has-avatar-left 切换 */
+.resume-sheet.tpl-replica .sheet-avatar {
+  display: block;
+  width: var(--sheet-avatar-size, 26mm);
+  height: var(--sheet-avatar-size, 26mm);
+  object-fit: cover;
+  margin: 0 auto 3mm;
+  background: #ffffff;
+  border-radius: 2px;
+}
+
+.resume-sheet.tpl-replica.avatar-left .sheet-avatar {
+  margin: 0 0 3mm;
+}
+
+.resume-sheet.tpl-replica .sheet-name-row,
+.resume-sheet.tpl-replica .sheet-contacts {
+  justify-content: center;
+}
+
+.resume-sheet.tpl-replica .sheet-name {
+  font-size: 20pt;
+  font-weight: 700;
+  letter-spacing: 3px;
+  margin: 0;
+}
+
+.resume-sheet.tpl-replica .sheet-label {
+  color: var(--sheet-accent);
+  font-weight: 500;
+}
+
+.resume-sheet.tpl-replica .sheet-contacts {
+  gap: 2px 0;
+  margin-top: 4mm;
+  font-size: 9.5pt;
+}
+
+/* 联系方式之间用浅色竖线分隔，和原简历的处理一致 */
+.resume-sheet.tpl-replica .sheet-contacts > span + span::before {
+  content: '|';
+  margin: 0 8px;
+  color: currentColor;
+  opacity: .45;
+}
+
+/* 图标徽章式小节标题：深色方块 + 标题文字 */
+.resume-sheet.tpl-replica .sheet-title,
+.resume-sheet.tpl-replica .sheet-title-bar {
+  display: flex;
+  align-items: center;
+  /* 原 PDF 实测：节点右缘距标题文字约 4mm（节点右缘在正文左边界外 1.6mm） */
+  gap: 4mm;
+  margin: 0 0 8px;
+  padding: 0;
+  border-left: 0;
+  color: var(--sheet-heading);
+  font-size: 12pt;
+  font-weight: 700;
+  letter-spacing: .5px;
+}
+
+/* 圆形图标节点：原 PDF 是 22.5pt（约 7.9mm）的深色圆，里面是白色线性图标 */
+.resume-sheet.tpl-replica .sheet-section-node {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 7.9mm;
+  height: 7.9mm;
+  border-radius: 50%;
+  background: var(--sheet-band);
+  color: var(--sheet-band-text);
+  font-size: 4.4mm;
+  /*
+   * 节点要套在轨道上：原 PDF 实测节点中心 x=37.3pt、直径 22.6pt，
+   * 与轨道中心同一条竖线（正文左边界再往左 5.6mm）。这里往左推
+   * 「轨道偏移 + 自身半径」，让节点圆心正好落在轨道上。
+   */
+  margin-left: calc((var(--sheet-rail-offset, 6mm) + 3.95mm) * -1);
+}
+
+.resume-sheet.tpl-replica .sheet-section-node .el-icon {
+  font-size: inherit;
+}
+
+.resume-sheet.tpl-replica .sheet-section {
+  margin-top: 14px;
+}
+
+
+/*
+ * 左侧竖向轨道：每个小节各画一段，用负向偏移贴到正文左边界之外。
+ * 这样不用给板块套 wrapper，也就不会打乱其他模板的网格。
+ * 偏移量由 ResumeStyleExtractor 实测得到，缺数据时兜底 6mm。
+ */
+.resume-sheet.tpl-replica.has-section-rail .sheet-section {
+  position: relative;
+}
+
+.resume-sheet.tpl-replica.has-section-rail .sheet-section::before {
+  content: '';
+  position: absolute;
+  /* 变量是轨道「中心」离正文左边界的距离，所以还要再减去自身宽度的一半 */
+  left: calc(var(--sheet-rail-offset, 6mm) * -1 - .13mm);
+  /*
+   * 从节点圆心往下画，越过小节间距（14px）接到下一个节点圆心；
+   * 末尾多画 8px 让相邻两段互相压住，避免亚像素取整后出现断点。
+   */
+  top: 3.95mm;
+  bottom: calc(-14px - 3.95mm - 8px);
+  width: .26mm;
+  background: var(--sheet-band);
+}
+
+/* 原 PDF 的轨道止于最后一节正文结束处，不再拖到页尾空白 */
+.resume-sheet.tpl-replica.has-section-rail .sheet-section:last-of-type::before {
+  bottom: 0;
+}
+
+/* 编号和普通项目符号在原 PDF 里是灰黑色；红色只来自 HighlightedText */
+.resume-sheet.tpl-replica .sheet-bullets li::marker {
+  color: var(--sheet-body);
+}
+
+/* 技能按提取到的栏数排；本源简历是单栏长列表 */
+.resume-sheet.tpl-replica .sheet-skills {
+  columns: var(--sheet-skills-columns, 1);
+  column-gap: 24px;
+}
+
+.resume-sheet.tpl-replica .sheet-item-main {
+  color: var(--sheet-heading);
+}
+
+.resume-sheet.tpl-replica .sheet-detail {
+  color: var(--sheet-body);
+}

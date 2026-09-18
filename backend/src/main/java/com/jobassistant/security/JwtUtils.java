@@ -23,6 +23,7 @@ import java.util.Date;
 public class JwtUtils {
 
     private static final String CLAIM_USERNAME = "username";
+    private static final String CLAIM_TOKEN_ID = "tokenId";
 
     private final JwtProperties jwtProperties;
 
@@ -35,13 +36,14 @@ public class JwtUtils {
         return cachedKey;
     }
 
-    /** 生成 token，subject 存用户 ID。 */
-    public String generateToken(Long userId, String username) {
+    /** 生成 token，subject 存用户 ID，附带 tokenId 用于单点登录校验。 */
+    public String generateToken(Long userId, String username, String tokenId) {
         Instant now = Instant.now();
         Instant expireAt = now.plusSeconds(jwtProperties.getExpireMinutes() * 60);
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim(CLAIM_USERNAME, username)
+                .claim(CLAIM_TOKEN_ID, tokenId)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expireAt))
                 .signWith(key())
@@ -58,7 +60,10 @@ public class JwtUtils {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            return new LoginUser(Long.valueOf(claims.getSubject()), claims.get(CLAIM_USERNAME, String.class));
+            return new LoginUser(
+                    Long.valueOf(claims.getSubject()),
+                    claims.get(CLAIM_USERNAME, String.class),
+                    claims.get(CLAIM_TOKEN_ID, String.class));
         } catch (JwtException | IllegalArgumentException e) {
             log.debug("JWT 解析失败: {}", e.getMessage());
             return null;

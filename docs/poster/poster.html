@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>职得 JobPath 宣传海报</title>
+<style>
+  @page { margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --brand: #9c7c3c;
+    --brand-hover: #b08d47;
+    --brand-deep: #5f4a1f;
+    --brand-soft: #f0e9d8;
+    --ink: #1a1d23;
+    --text: #3d4148;
+    --muted: #8a8a85;
+    --line: #e3e0d8;
+    --paper: #f7f5f0;
+  }
+
+  html, body {
+    width: 1240px;
+    background: var(--paper);
+    font-family: 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .poster {
+    position: relative;
+    width: 1240px;
+    overflow: hidden;
+    background:
+      radial-gradient(1100px 620px at 88% -4%, #f0e6d2 0%, rgba(240,230,210,0) 62%),
+      radial-gradient(900px 520px at -8% 18%, #efeade 0%, rgba(239,234,222,0) 60%),
+      linear-gradient(180deg, #faf8f4 0%, #f7f5f0 46%, #f4f1ea 100%);
+  }
+
+  .serif { font-family: 'STZhongsong', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', serif; }
+
+  /* ============================================================ 头部 */
+  .head {
+    position: relative;
+    padding: 74px 84px 34px;
+  }
+
+  .head-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+  }
+
+  .brand-row { display: flex; align-items: center; gap: 13px; }
+
+  .brand-mark {
+    width: 42px; height: 42px;
+    border-radius: 11px;
+    object-fit: cover;
+    box-shadow: 0 3px 12px rgba(26,29,35,.14);
+  }
+
+  .brand-name {
+    font-size: 21px; font-weight: 600; color: var(--ink);
+    letter-spacing: .4px;
+  }
+
+  .brand-sub {
+    font-size: 11.5px; color: var(--muted);
+    letter-spacing: 2.6px; text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  .ribbon {
+    text-align: right;
+    font-size: 11px;
+    letter-spacing: 4.4px;
+    color: #a9946a;
+    line-height: 1.9;
+    text-transform: uppercase;
+  }
+
+  h1.title {
+    font-size: 78px;
+    line-height: 1.1;
+    color: var(--ink);
+    letter-spacing: 1px;
+    font-weight: 700;
+  }
+
+  h1.title .accent { color: var(--brand); }
+
+  .title-rule {
+    width: 96px; height: 3px;
+    background: linear-gradient(90deg, var(--brand) 0%, var(--brand-hover) 100%);
+    margin: 26px 0 24px;
+    border-radius: 2px;
+  }
+
+  .subtitle {
+    font-size: 33px;
+    line-height: 1.5;
+    color: #2c3037;
+    letter-spacing: .2px;
+    font-weight: 600;
+  }
+
+  .desc {
+    margin-top: 22px;
+    max-width: 960px;
+    font-size: 16.5px;
+    line-height: 2.05;
+    color: #6f7379;
+    letter-spacing: .25px;
+  }
+
+  /* ============================================================ 设备预览 */
+  .stage {
+    position: relative;
+    margin: 42px 84px 0;
+    padding: 30px 30px 0;
+    border-radius: 26px;
+    background: linear-gradient(160deg, #ffffff 0%, #f6f2e9 100%);
+    border: 1px solid #eae5da;
+    box-shadow: 0 30px 70px -34px rgba(60,48,20,.42), 0 4px 16px -8px rgba(60,48,20,.16);
+  }
+
+  .stage::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 26px;
+    background: radial-gradient(560px 200px at 76% 0%, rgba(156,124,60,.10), rgba(156,124,60,0));
+    pointer-events: none;
+  }
+
+  .win {
+    position: relative;
+    border-radius: 14px 14px 0 0;
+    overflow: hidden;
+    border: 1px solid #e6e2d9;
+    border-bottom: none;
+    box-shadow: 0 18px 44px -22px rgba(40,32,14,.34);
+    background: #fff;
+  }
+
+  .win-bar {
+    display: flex; align-items: center; gap: 8px;
+    height: 40px; padding: 0 16px;
+    background: #f4f1ea;
+    border-bottom: 1px solid #e6e2d9;
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #d9d4c7; }
+  .dot:nth-child(1) { background: #e0b4a6; }
+  .dot:nth-child(2) { background: #e3cf9e; }
+  .dot:nth-child(3) { background: #b6ccae; }
+
+  .win-url {
+    flex: 1;
+    margin-left: 12px;
+    height: 22px; border-radius: 6px;
+    background: #fff;
+    border: 1px solid #e6e2d9;
+    font-size: 11.5px; color: #a49e91;
+    display: flex; align-items: center;
+    padding: 0 12px;
+    letter-spacing: .3px;
+  }
+
+  .win img { display: block; width: 100%; }
+
+  .stage-caption {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px;
+    padding: 20px 0 24px;
+    font-size: 13px;
+    color: #9b958a;
+    letter-spacing: .6px;
+  }
+
+  .stage-caption b { color: var(--brand); font-weight: 600; }
+
+  /* ============================================================ 三条亮点 */
+  .highlights {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin: 46px 84px 0;
+    padding: 34px 0;
+    background: rgba(255,255,255,.72);
+    border: 1px solid #eae5da;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+  }
+
+  .hl {
+    padding: 0 34px;
+    display: flex; gap: 16px;
+    align-items: flex-start;
+  }
+
+  .hl + .hl { border-left: 1px solid #ece7dc; }
+
+  .hl-icon {
+    flex: none;
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    background: var(--brand-soft);
+    border: 1px solid #e5d9bd;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--brand);
+  }
+
+  .hl-title {
+    font-size: 19px; font-weight: 600; color: var(--ink);
+    line-height: 1.45;
+  }
+
+  .hl-desc {
+    margin-top: 7px;
+    font-size: 13.5px; line-height: 1.75; color: #85857f;
+  }
+
+  /* ============================================================ 流程 */
+  .flow-wrap { padding: 54px 84px 0; }
+
+  .flow-title {
+    font-size: 27px;
+    color: var(--ink);
+    letter-spacing: .4px;
+    font-weight: 600;
+  }
+
+  .flow-title .accent { color: var(--brand); }
+
+  .flow {
+    display: flex; align-items: center;
+    margin-top: 26px;
+    flex-wrap: nowrap;
+  }
+
+  .flow-step {
+    display: flex; align-items: center; gap: 9px;
+    height: 44px;
+    padding: 0 19px;
+    background: #fff;
+    border: 1px solid #e6e1d6;
+    border-radius: 22px;
+    font-size: 14.5px;
+    color: #4c5058;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px -4px rgba(60,48,20,.18);
+  }
+
+  .flow-step svg { color: var(--brand); flex: none; }
+
+  .flow-arrow {
+    flex: none;
+    color: #c7bda6;
+    margin: 0 9px;
+    font-size: 15px;
+  }
+
+  /* ============================================================ 功能网格 */
+  .grid-wrap { padding: 50px 84px 0; }
+
+  .grid-title {
+    font-size: 27px; color: var(--ink); font-weight: 600; letter-spacing: .4px;
+  }
+
+  .grid-title .num { color: var(--brand); font-size: 30px; margin-right: 6px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 12px;
+    margin-top: 26px;
+  }
+
+  .cell {
+    background: rgba(255,255,255,.86);
+    border: 1px solid #eae5da;
+    border-radius: 15px;
+    padding: 20px 8px 17px;
+    text-align: center;
+    box-shadow: 0 2px 10px -6px rgba(60,48,20,.14);
+  }
+
+  .cell svg { color: var(--brand); }
+  .cell-icon { height: 27px; display: flex; align-items: center; justify-content: center; }
+
+  .cell-name {
+    margin-top: 12px;
+    font-size: 13.5px; color: #3f434a;
+    letter-spacing: .3px;
+  }
+
+  /* ============================================================ 页脚 */
+  .foot {
+    margin-top: 54px;
+    padding: 30px 84px 40px;
+    background: linear-gradient(90deg, #2b2c28 0%, #3a3a33 60%, #4a4536 100%);
+    display: flex; align-items: center; justify-content: space-between;
+    position: relative;
+  }
+
+  .foot::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 5px;
+    background: linear-gradient(180deg, var(--brand) 0%, var(--brand-hover) 100%);
+  }
+
+  .foot-quote {
+    font-size: 25px; color: #f3efe6;
+    letter-spacing: .6px; font-weight: 600;
+  }
+
+  .foot-quote .accent { color: #d9bd7f; }
+
+  .foot-right { text-align: right; }
+
+  .foot-brand {
+    font-size: 17px; color: #efe9dc; font-weight: 600;
+    letter-spacing: .5px;
+  }
+
+  .foot-tag {
+    margin-top: 6px;
+    font-size: 10.5px; color: #a49c86;
+    letter-spacing: 3.4px; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<div class="poster">
+
+  <!-- ============================= 头部 ============================= -->
+  <div class="head">
+    <div class="head-top">
+      <div class="brand-row">
+        <img class="brand-mark" src="logo-mark.png" alt="职得 JobPath" />
+        <div>
+          <div class="brand-name">职得 JobPath</div>
+          <div class="brand-sub">AI Job Assistant</div>
+        </div>
+      </div>
+      <div class="ribbon">Job Hunt<br />Made Orderly</div>
+    </div>
+
+    <h1 class="title serif">职得 JobPath <span class="accent">AI 求职工作台</span></h1>
+    <div class="title-rule"></div>
+    <div class="subtitle serif">把收藏、投递、面试、复盘与 Offer，装进同一个系统</div>
+    <p class="desc">
+      面向真实求职场景打造的个人求职工作台。把目标公司档案、职位库、多版简历、投递记录、
+      面试日程与 AI 分析整合进同一处 —— 从收藏一个职位，到最终拿到 Offer，每一步都有地方安放。
+    </p>
+  </div>
+
+  <!-- ============================= 界面预览 ============================= -->
+  <div class="stage">
+    <div class="win">
+      <div class="win-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="win-url">jobpath.app/#/dashboard</span>
+      </div>
+      <img src="dashboard.png" alt="数据看板" />
+    </div>
+    <div class="stage-caption"><b>数据看板</b> · 投递趋势、面试率、Offer 率，用数据校准求职节奏</div>
+  </div>
+
+  <!-- ============================= 三条亮点 ============================= -->
+  <div class="highlights">
+    <div class="hl">
+      <div class="hl-icon">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/>
+          <rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/>
+        </svg>
+      </div>
+      <div>
+        <div class="hl-title">一个工作台<br />管完求职全程</div>
+        <div class="hl-desc">公司、职位、简历、投递、面试集中管理，不再散落在表格与备忘录里。</div>
+      </div>
+    </div>
+    <div class="hl">
+      <div class="hl-icon">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>
+          <circle cx="12" cy="12" r="3.2"/>
+        </svg>
+      </div>
+      <div>
+        <div class="hl-title">AI 解析 JD<br />匹配度一目了然</div>
+        <div class="hl-desc">粘贴 JD 自动拆出技能与经验要求，对照简历给出匹配度与差距项。</div>
+      </div>
+    </div>
+    <div class="hl">
+      <div class="hl-icon">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="12" cy="5.5" rx="7" ry="2.8"/>
+          <path d="M5 5.5v6c0 1.6 3.1 2.8 7 2.8s7-1.2 7-2.8v-6"/>
+          <path d="M5 11.5v6c0 1.6 3.1 2.8 7 2.8s7-1.2 7-2.8v-6"/>
+        </svg>
+      </div>
+      <div>
+        <div class="hl-title">AI 结果落库<br />沉淀成求职资产</div>
+        <div class="hl-desc">每次解析与优化都写进数据库，随时回看，不做一次性问答。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= 流程 ============================= -->
+  <div class="flow-wrap">
+    <div class="flow-title serif">从<span class="accent">收藏一个职位</span>开始，到拿到 Offer</div>
+    <div class="flow">
+      <div class="flow-step">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>
+        收藏职位
+      </div>
+      <span class="flow-arrow">›</span>
+      <div class="flow-step">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="4" rx="1.4"/><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2"/><path d="M8 12h8M8 16h5"/></svg>
+        粘贴 JD
+      </div>
+      <span class="flow-arrow">›</span>
+      <div class="flow-step">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3.2"/></svg>
+        AI 解析匹配
+      </div>
+      <span class="flow-arrow">›</span>
+      <div class="flow-step">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v8H3z"/><path d="M14 10h4l3 3v2h-7z"/><circle cx="7" cy="18" r="1.8"/><circle cx="17.5" cy="18" r="1.8"/></svg>
+        投递推进
+      </div>
+      <span class="flow-arrow">›</span>
+      <div class="flow-step">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.4"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        面试复盘
+      </div>
+      <span class="flow-arrow">›</span>
+      <div class="flow-step">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4"/><path d="M17 3H7v5a5 5 0 0 0 10 0z"/><path d="M17 5h2.5a2.5 2.5 0 0 1 0 5H17M7 5H4.5a2.5 2.5 0 0 0 0 5H7"/></svg>
+        Offer 归档
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= 功能网格 ============================= -->
+  <div class="grid-wrap">
+    <div class="grid-title serif"><span class="num">8</span>大核心功能 · 覆盖求职全流程</div>
+    <div class="grid">
+      <div class="cell">
+        <div class="cell-icon"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.2"/><path d="M3 11h18M9 6V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V6"/></svg></div>
+        <div class="cell-name">投递记录</div>
+      </div>
+      <div class="cell">
+        <div class="cell-icon"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="18" rx="2"/><rect x="12.5" y="3" width="7.5" height="11" rx="2"/></svg></div>
+        <div class="cell-name">求职看板</div>
+      </div>
+      <div class="cell">
+        <div class="cell-icon"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg></div>
+        <div class="cell-name">多版简历</div>
+      </div>
+      <div class="cell">
+        <div class="cell-icon"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.4"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
+        <div class="cell-name">面试管理</div>
+      </div>
+      <div class="cell">
+        <div class="cell-icon"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v15"/><path d="M14 21V11h4a2 2 0 0 1 2 2v8M2 21h20M7 8h2M7 12h2M7 16h2"/></svg></div>
+        <div class="cell-name">公司与职位</div>
+      </div>
+      <div class="cell">
+        <div class="cell-icon"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H18a1.5 1.5 0 0 1 1.5 1.5v15A1.5 1.5 0 0 1 18 21H5.5A1.5 1.5 0 0 1 4 19.5z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></div>
+        <div class="cell-name">面试题库</div>
+      </div>
+      <div class="cell">
+        <div class="cell-icon"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 13.9 9l5.6.2-4.5 3.4 1.6 5.4L12 15l-4.6 3 1.6-5.4L4.5 9.2 10.1 9z"/></svg></div>
+        <div class="cell-name">AI 助手</div>
+      </div>
+      <div class="cell">
+        <div class="cell-icon"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M20 20H4"/><path d="M8 20v-6M12.5 20V8M17 20v-9"/></svg></div>
+        <div class="cell-name">数据看板</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= 页脚 ============================= -->
+  <div class="foot">
+    <div class="foot-quote serif">让每一步投递，都成为<span class="accent">可回看的求职资产</span></div>
+    <div class="foot-right">
+      <div class="foot-brand">职得 JobPath · 个人求职全流程管理</div>
+      <div class="foot-tag">Job Hunt · Made Orderly</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

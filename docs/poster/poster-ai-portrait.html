@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>职得 JobPath · AI 求职工作台海报</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --paper: #f4f0e8;
+    --paper-2: #fbf9f4;
+    --ink: #171b22;
+    --text: #3f4349;
+    --muted: #77786f;
+    --gold: #a98235;
+    --gold-deep: #7d5f24;
+    --gold-pale: #ece1c5;
+    --green: #587b5a;
+    --line: rgba(101, 83, 44, .18);
+  }
+  html, body {
+    width: 1240px;
+    color: var(--text);
+    background: var(--paper);
+    font-family: "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .serif { font-family: "STZhongsong", "Songti SC", "STSong", serif; }
+  .poster {
+    position: relative;
+    width: 1240px;
+    min-height: 1840px;
+    overflow: hidden;
+    background:
+      radial-gradient(600px 520px at 103% 2%, rgba(192, 160, 96, .18), transparent 67%),
+      radial-gradient(520px 520px at -10% 39%, rgba(205, 190, 151, .18), transparent 68%),
+      linear-gradient(180deg, #f8f5ef 0%, #f4f0e8 66%, #eee8dc 100%);
+  }
+  .poster::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: .25;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(58, 49, 31, .22) .7px, transparent .7px);
+    background-size: 9px 9px;
+    mask-image: linear-gradient(to bottom, black, transparent 18%, transparent 80%, black);
+  }
+  .poster::after {
+    content: "AI / JOB / PATH";
+    position: absolute;
+    right: -194px;
+    top: 785px;
+    z-index: 0;
+    transform: rotate(90deg);
+    color: rgba(126, 97, 39, .10);
+    font: 700 72px/1 Georgia, serif;
+    letter-spacing: 18px;
+    white-space: nowrap;
+  }
+
+  .header { position: relative; z-index: 1; padding: 42px 68px 0; }
+  .brandline { display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 13px; }
+  .brand img { width: 42px; height: 42px; border-radius: 11px; box-shadow: 0 8px 18px rgba(49, 40, 25, .12); }
+  .brand-name { color: var(--ink); font-size: 19px; font-weight: 700; letter-spacing: .3px; }
+  .brand-en { margin-top: 2px; color: #9a8b6a; font: 10px/1.2 Georgia, serif; letter-spacing: 3px; }
+  .edition { color: #9f8858; font: 10px/1.8 Georgia, serif; letter-spacing: 4px; text-align: right; }
+
+  .headline { display: grid; grid-template-columns: 1fr 250px; align-items: end; gap: 34px; margin-top: 34px; }
+  .kicker { margin-bottom: 11px; color: var(--gold); font-size: 13px; font-weight: 700; letter-spacing: 3px; }
+  h1 { color: var(--ink); font-size: 66px; font-weight: 700; line-height: 1.14; letter-spacing: .5px; }
+  h1 .gold { color: var(--gold); }
+  .intro { padding: 0 0 6px 20px; border-left: 2px solid var(--gold); color: #66675f; font-size: 14px; line-height: 1.9; }
+  .subtitle { margin-top: 19px; color: #262a31; font-size: 23px; font-weight: 600; letter-spacing: .2px; }
+
+  .feature-strip {
+    position: relative; z-index: 2;
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 1px; margin: 30px 68px 0;
+    overflow: hidden; border: 1px solid var(--line); border-radius: 14px;
+    background: var(--line); box-shadow: 0 12px 28px -22px rgba(45, 36, 18, .5);
+  }
+  .feature-pill { padding: 14px 10px 13px; background: rgba(255,255,255,.78); text-align: center; }
+  .feature-pill strong { display: block; color: var(--gold); font: 700 10px/1 Georgia, serif; letter-spacing: 1px; }
+  .feature-pill span { display: block; margin-top: 7px; color: #383b40; font-size: 13px; font-weight: 600; }
+
+  .screen-stage {
+    position: relative; z-index: 1;
+    margin: 24px 68px 0; padding: 17px 17px 0;
+    overflow: hidden; border: 1px solid rgba(114, 89, 39, .20); border-radius: 24px;
+    background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(231,222,203,.94));
+    box-shadow: 0 35px 70px -38px rgba(49,39,18,.55), 0 8px 24px -18px rgba(49,39,18,.28);
+  }
+  .screen-stage::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(520px 190px at 82% -4%, rgba(176,137,57,.15), transparent 68%);
+  }
+  .browser { position: relative; overflow: hidden; border: 1px solid #ddd5c5; border-radius: 13px 13px 0 0; background: #fff; }
+  .browser-bar { display: flex; align-items: center; gap: 7px; height: 32px; padding: 0 13px; background: #eeeae1; border-bottom: 1px solid #ded8cd; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #d7a99e; }
+  .dot:nth-child(2) { background: #d7c38d; }
+  .dot:nth-child(3) { background: #a9c3a3; }
+  .address { display: flex; align-items: center; flex: 1; height: 18px; margin-left: 7px; padding: 0 9px; border: 1px solid #ded8ce; border-radius: 5px; background: #fff; color: #aaa397; font-size: 9px; }
+  .browser img { display: block; width: 100%; height: 646px; object-fit: cover; object-position: top left; }
+  .screen-caption { display: flex; align-items: center; justify-content: space-between; padding: 13px 4px 16px; }
+  .caption-main { color: #4c4d49; font-size: 12px; }
+  .caption-main b { color: var(--gold-deep); }
+  .caption-note { color: #928a7a; font: 10px/1 Georgia, serif; letter-spacing: 2px; }
+
+  .ai-proof { position: relative; z-index: 2; margin: 24px 68px 0; }
+  .section-head { display: flex; align-items: flex-end; justify-content: space-between; }
+  .section-head h2 { color: var(--ink); font-size: 24px; font-weight: 700; }
+  .section-head h2 i { margin-right: 7px; color: var(--gold); font-size: 27px; font-style: normal; }
+  .section-head p { color: #8c877b; font: 10px/1 Georgia, serif; letter-spacing: 2.5px; }
+  .proof-grid { display: grid; grid-template-columns: 1.05fr 1.2fr 1fr; gap: 13px; margin-top: 15px; }
+  .proof {
+    position: relative; min-height: 182px; padding: 22px 21px 19px;
+    overflow: hidden; border: 1px solid var(--line); border-radius: 16px;
+    background: rgba(255,255,255,.79); box-shadow: 0 8px 26px -22px rgba(34,29,20,.5);
+  }
+  .proof::after { content: attr(data-no); position: absolute; right: 13px; top: 4px; color: rgba(155,120,51,.10); font: 700 58px/1 Georgia, serif; }
+  .proof-label { color: var(--gold); font: 700 10px/1 Georgia, serif; letter-spacing: 2px; }
+  .proof h3 { position: relative; z-index: 1; margin-top: 9px; color: var(--ink); font-size: 17px; line-height: 1.35; }
+  .proof p { position: relative; z-index: 1; margin-top: 9px; color: #74766f; font-size: 12px; line-height: 1.7; }
+  .score-row { display: flex; align-items: center; gap: 13px; margin-top: 13px; }
+  .score-ring { display: grid; place-items: center; width: 51px; height: 51px; border-radius: 50%; background: conic-gradient(var(--gold) 0 75%, #ece8df 75%); }
+  .score-ring span { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 50%; background: #fff; color: var(--ink); font: 700 18px/1 Georgia, serif; }
+  .tags { display: flex; flex-wrap: wrap; gap: 5px; }
+  .tag { padding: 4px 8px; border: 1px solid #d9e7d3; border-radius: 6px; background: #f0f7ec; color: var(--green); font-size: 10px; }
+  .rewrite { margin-top: 13px; display: grid; grid-template-columns: 1fr 18px 1fr; align-items: stretch; gap: 7px; }
+  .rewrite-box { padding: 9px 10px; border-radius: 8px; background: #f0efeb; color: #85847f; font-size: 10px; line-height: 1.55; }
+  .rewrite-box.after { background: #f2ead8; color: #57451f; }
+  .rewrite-arrow { display: grid; place-items: center; color: var(--gold); font-size: 16px; }
+  .question-list { display: grid; gap: 7px; margin-top: 13px; }
+  .question { display: flex; gap: 7px; align-items: flex-start; color: #656761; font-size: 10px; line-height: 1.45; }
+  .question b { display: grid; place-items: center; flex: none; width: 16px; height: 16px; border-radius: 50%; background: var(--gold-pale); color: var(--gold-deep); font: 700 9px/1 Georgia, serif; }
+
+  .journey { position: relative; z-index: 1; margin: 28px 68px 0; padding-top: 22px; border-top: 1px solid var(--line); }
+  .journey-title { color: var(--ink); font-size: 20px; font-weight: 700; }
+  .journey-title span { color: var(--gold); }
+  .steps { display: flex; align-items: center; margin-top: 16px; }
+  .step { flex: 1; padding: 11px 6px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255,255,255,.76); color: #4c4e4a; font-size: 11px; text-align: center; white-space: nowrap; }
+  .arrow { flex: none; width: 22px; color: #b6a98b; text-align: center; }
+
+  .system-bar {
+    position: relative; z-index: 1;
+    display: grid; grid-template-columns: 235px 1fr; align-items: center; gap: 22px;
+    margin: 24px 68px 0; padding: 19px 22px;
+    border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.58);
+  }
+  .system-copy strong { display: block; color: var(--ink); font-size: 16px; }
+  .system-copy span { display: block; margin-top: 5px; color: #858278; font-size: 10px; line-height: 1.5; }
+  .system-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .system-item { padding: 10px 4px; border-radius: 9px; background: #fff; color: #5b5d58; font-size: 10.5px; text-align: center; box-shadow: 0 4px 14px -12px rgba(40,30,10,.7); }
+
+  .footer {
+    position: relative; z-index: 2;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 30px; padding: 25px 68px 29px;
+    background: linear-gradient(96deg, #252824 0%, #35362f 58%, #4b4434 100%);
+  }
+  .footer::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--gold); }
+  .footer-quote { color: #f3eee3; font-size: 21px; font-weight: 700; }
+  .footer-quote span { color: #d9bd7a; }
+  .footer-brand { color: #eee8db; font-size: 14px; font-weight: 700; text-align: right; }
+  .footer-brand small { display: block; margin-top: 6px; color: #a9a18e; font: 9px/1 Georgia, serif; letter-spacing: 3px; }
+</style>
+</head>
+<body>
+<main class="poster">
+  <header class="header">
+    <div class="brandline">
+      <div class="brand">
+        <img src="logo-mark.png" alt="职得 JobPath" />
+        <div><div class="brand-name">职得 JobPath</div><div class="brand-en">AI JOB ASSISTANT</div></div>
+      </div>
+      <div class="edition">INTELLIGENT JOB HUNT<br />WORKSPACE · 2026</div>
+    </div>
+    <div class="headline">
+      <div>
+        <div class="kicker">AI 求职工作台</div>
+        <h1 class="serif"><span class="gold">AI 读懂岗位</span><br />也读懂你的简历</h1>
+      </div>
+      <div class="intro">从岗位要求到简历表达，从能力差距到面试准备，让每一次投递都有依据、有行动、有复盘。</div>
+    </div>
+    <div class="subtitle serif">解析 JD、匹配简历、优化表达、生成面试题，一条链路走向 Offer</div>
+  </header>
+
+  <section class="feature-strip" aria-label="AI 核心能力">
+    <div class="feature-pill"><strong>01</strong><span>JD 解析</span></div>
+    <div class="feature-pill"><strong>02</strong><span>简历匹配</span></div>
+    <div class="feature-pill"><strong>03</strong><span>简历优化</span></div>
+    <div class="feature-pill"><strong>04</strong><span>简历排版</span></div>
+    <div class="feature-pill"><strong>05</strong><span>AI 出题</span></div>
+  </section>
+
+  <section class="screen-stage">
+    <div class="browser">
+      <div class="browser-bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><div class="address">jobpath.app/#/ai · AI 求职助手</div></div>
+      <img src="ai-workspace-latest.png" alt="最新版 AI 求职助手界面" />
+    </div>
+    <div class="screen-caption">
+      <div class="caption-main"><b>真实系统界面</b> · 自动回看历史分析，不重复消耗 Token</div>
+      <div class="caption-note">CURRENT PRODUCT UI</div>
+    </div>
+  </section>
+
+  <section class="ai-proof">
+    <div class="section-head">
+      <h2 class="serif"><i>3</i>个关键动作，让 AI 真正服务求职</h2>
+      <p>FROM INSIGHT TO ACTION</p>
+    </div>
+    <div class="proof-grid">
+      <article class="proof" data-no="01">
+        <div class="proof-label">MATCH</div>
+        <h3>不只打分，更指出差距</h3>
+        <div class="score-row"><div class="score-ring"><span>75</span></div><div class="tags"><i class="tag">自动化测试</i><i class="tag">接口测试</i><i class="tag">性能测试</i></div></div>
+        <p>把岗位需求与简历逐项对照，亮点、缺失技能和优化建议一次看清。</p>
+      </article>
+      <article class="proof" data-no="02">
+        <div class="proof-label">REWRITE</div>
+        <h3>逐条改写，但绝不替你编经历</h3>
+        <div class="rewrite"><div class="rewrite-box">负责订单系统测试，发现一些问题。</div><div class="rewrite-arrow">›</div><div class="rewrite-box after">主导订单核心链路测试，覆盖接口、异常与回归场景。</div></div>
+        <p>保留原文、给出改写稿和理由；缺少事实就明确提示补充。</p>
+      </article>
+      <article class="proof" data-no="03">
+        <div class="proof-label">INTERVIEW</div>
+        <h3>围绕目标岗位，生成专属题单</h3>
+        <div class="question-list"><div class="question"><b>1</b><span>如何设计稳定的接口自动化测试体系？</span></div><div class="question"><b>2</b><span>缓存击穿与缓存穿透有什么区别？</span></div><div class="question"><b>3</b><span>项目中最难定位的问题是什么？</span></div></div>
+        <p>按技术方向与难度出题，一键沉淀进题库持续练习。</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="journey">
+    <div class="journey-title serif">从一个目标岗位开始，沿着 <span>AI 增强链路</span>走到 Offer</div>
+    <div class="steps"><div class="step">导入职位</div><div class="arrow">›</div><div class="step">解析 JD</div><div class="arrow">›</div><div class="step">匹配简历</div><div class="arrow">›</div><div class="step">定向优化</div><div class="arrow">›</div><div class="step">面试出题</div><div class="arrow">›</div><div class="step">推进 Offer</div></div>
+  </section>
+
+  <section class="system-bar">
+    <div class="system-copy"><strong>AI 之外，也管好求职全程</strong><span>所有分析、投递和复盘持续沉淀为个人求职资产。</span></div>
+    <div class="system-list"><div class="system-item">求职看板</div><div class="system-item">投递管理</div><div class="system-item">面试复盘</div><div class="system-item">数据统计</div></div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-quote serif">让 AI 帮你看清差距，<span>把准备做在投递之前</span></div>
+    <div class="footer-brand">职得 JobPath · AI 求职工作台<small>JOB HUNT · MADE ORDERLY</small></div>
+  </footer>
+</main>
+</body>
+</html>

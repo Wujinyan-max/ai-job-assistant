@@ -4,6 +4,9 @@ import com.jobassistant.common.BusinessException;
 import com.jobassistant.common.ErrorCode;
 import com.jobassistant.service.impl.ResumeImportServiceImpl;
 import com.jobassistant.vo.ResumeImportVO;
+import com.jobassistant.vo.ResumeStructureVO;
+import com.jobassistant.vo.ResumeStyleVO;
+import com.jobassistant.vo.ResumeVisionVO;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
@@ -23,7 +26,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 class ResumeImportServiceImplTest {
 
-    private final ResumeImportServiceImpl service = new ResumeImportServiceImpl();
+    /** 只测导入本身（字段抽取、边界提示），视觉识别用一个固定返回的实现替掉 */
+    private final ResumeVisionService vision = (pdf, text) -> new ResumeVisionService.VisionOutcome(
+            new ResumeVisionVO(ResumeStructureVO.empty(), ResumeStyleVO.empty()),
+            ResumeVisionService.Source.LOCAL, null);
+
+    private final ResumeImportServiceImpl service = new ResumeImportServiceImpl(vision);
 
     @Test
     @DisplayName("DOCX 简历能解析出正文和常用字段")

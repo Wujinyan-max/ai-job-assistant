@@ -3,8 +3,12 @@ package com.jobassistant.service.impl;
 import com.jobassistant.common.BusinessException;
 import com.jobassistant.common.ErrorCode;
 import com.jobassistant.service.ResumeImportService;
+import com.jobassistant.service.ResumeVisionService;
 import com.jobassistant.vo.ResumeImportVO;
+import com.jobassistant.vo.ResumeStructureVO;
+import com.jobassistant.vo.ResumeStyleVO;
 import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
@@ -32,6 +36,7 @@ import java.util.Locale;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ResumeImportServiceImpl implements ResumeImportService {
 
     /** 与 spring.servlet.multipart.max-file-size 保持一致 */
@@ -40,6 +45,8 @@ public class ResumeImportServiceImpl implements ResumeImportService {
     private static final int MAX_CONTENT_LENGTH = 100_000;
     private static final int MAX_TITLE_LENGTH = 100;
     private static final Charset GBK = Charset.forName("GBK");
+
+    private final ResumeVisionService resumeVisionService;
 
     @Override
     public ResumeImportVO parse(MultipartFile file) {
@@ -54,8 +61,10 @@ public class ResumeImportServiceImpl implements ResumeImportService {
         String fileType = resolveFileType(fileName);
 
         String content;
+        byte[] bytes;
         try {
-            content = ResumeFieldExtractor.normalize(extractText(fileType, file.getBytes()));
+            bytes = file.getBytes();
+            content = ResumeFieldExtractor.normalize(extractText(fileType, bytes));
         } catch (BusinessException e) {
             throw e;
         } catch (IOException e) {
@@ -96,9 +105,77 @@ public class ResumeImportServiceImpl implements ResumeImportService {
         }
         filledFields.add("简历正文");
 
+        // 版式与头像只在 PDF 上提取（本次需求只做 PDF），失败也不影响内容导入
+        ResumeStyleVO style = null;
+        String avatar = null;
+        ResumeStructureVO structure = null;
+        String source = null;
+        String notice = null;
+        if ("PDF".equals(fileType)) {
+            // 视觉识别为主：渲染成图片交给多模态模型，一次读出内容结构与版式；
+            // 模型不支持图片或调用失败时服务内部会自动降级，并把原因放在 notice 里
+            ResumeVisionService.VisionOutcome outcome =
+                    resumeVisionService.recognize(bytes, content);
+            structure = outcome.vision().structure();
+            source = outcome.source().name();
+            notice = outcome.notice();
+            ResumeStyleVO visionStyle = outcome.vision().style();
+            // 头像只能从 PDF 图形里抠，模型不产出图片，所以始终走本地提取
+            ResumeStyleExtractor.Extracted extracted = ResumeStyleExtractor.extract(bytes);
+            avatar = extracted.avatarDataUrl();
+            // 视觉没读出配色（走了降级路径）时用本地提取兜底，至少别把「原版复刻」丢掉
+            style = mergeStyle(visionStyle, extracted.style());
+            if (avatar != null) {
+                filledFields.add("头像");
+            }
+        }
+
         return new ResumeImportVO(fileName, fileType, content.length(), filledFields,
                 buildTitle(fields, fileName), fields.name(), fields.phone(), fields.email(),
-                fields.education(), fields.workYears(), fields.skills(), fields.summary(), content);
+                fields.education(), fields.workYears(), fields.skills(), fields.summary(), content,
+                style, avatar, structure, source, notice);
+    }
+
+    /**
+     * 合并两条版式来源。视觉识别看图说话，负责版式开关、颜色判断这些「看得出但不量得准」的部分；
+     * 本地提取按 PDF 坐标测算，字号 / 边距 / 头像尺寸比模型目测准得多，所以这些数字优先用本地的。
+     * 视觉走了降级路径（返回空版式）时直接整体退回本地结果。
+     */
+    private static ResumeStyleVO mergeStyle(ResumeStyleVO vision, ResumeStyleVO local) {
+        ResumeStyleVO fallback = local == null ? ResumeStyleVO.empty() : local;
+        if (vision == null || vision.equals(ResumeStyleVO.empty())) {
+            return fallback;
+        }
+        return new ResumeStyleVO(
+                pick(vision.accentColor(), fallback.accentColor()),
+                pick(vision.headingColor(), fallback.headingColor()),
+                pick(vision.bodyColor(), fallback.bodyColor()),
+                pick(vision.metaColor(), fallback.metaColor()),
+                vision.headerBand(),
+                pick(vision.headerBandColor(), fallback.headerBandColor()),
+                pick(vision.headerTextColor(), fallback.headerTextColor()),
+                measured(vision.headerHeightRatio(), fallback.headerHeightRatio()),
+                vision.avatarPosition(),
+                measured(vision.avatarSizeMm(), fallback.avatarSizeMm()),
+                vision.avatarShape(),
+                vision.sectionBadge(),
+                vision.sectionRail(),
+                measured(vision.sectionRailOffsetMm(), fallback.sectionRailOffsetMm()),
+                vision.skillsColumns(),
+                vision.accentTerms().isEmpty() ? fallback.accentTerms() : vision.accentTerms(),
+                measured(vision.marginMm(), fallback.marginMm()),
+                measured(vision.baseFontSizePt(), fallback.baseFontSizePt()),
+                pick(vision.fontStack(), fallback.fontStack()));
+    }
+
+    /** 视觉没给出这个颜色（模型漏答或答了非法值被构造器清掉）时用本地提取的颜色 */
+    private static String pick(String vision, String local) {
+        return StringUtils.hasText(vision) ? vision : local;
+    }
+
+    /** 尺寸类字段：模型往往估不出具体数值，为 0 就说明它没量，用本地实测值 */
+    private static double measured(double vision, double local) {
+        return vision > 0 ? vision : local;
     }
 
     private String resolveFileType(String fileName) {
@@ -129,7 +206,11 @@ public class ResumeImportServiceImpl implements ResumeImportService {
 
     private String extractPdf(byte[] bytes) throws IOException {
         try (PDDocument document = Loader.loadPDF(bytes)) {
-            return new PDFTextStripper().getText(document);
+            PDFTextStripper stripper = new PDFTextStripper();
+            // 默认顺序按 PDF 内部绘制指令排列，多栏简历会把板块标题甩到内容后面，
+            // 导致「项目经历」被塞进「工作经历」。按坐标排序才是人眼看到的顺序。
+            stripper.setSortByPosition(true);
+            return stripper.getText(document);
         } catch (InvalidPasswordException e) {
             throw new BusinessException(ErrorCode.RESUME_PARSE_FAILED, "PDF 已加密，请先去掉密码再导入");
         }

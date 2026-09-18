@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Manrope', 'PingFang SC', 'Microsoft YaHei UI', sans-serif;
+    background: #0a0c10;
+    color: #e8eaf0;
+    height: 900px;
+    display: flex;
+  }
+
+  /* ============ 侧边栏 ============ */
+  .sider {
+    width: 196px;
+    background: #0e1116;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    padding: 20px 10px;
+    flex-shrink: 0;
+    display: flex; flex-direction: column;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 9px;
+    padding: 0 10px; margin-bottom: 24px;
+  }
+  .logo-mark {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: #5eead4;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: #0a0c10; font-weight: 800;
+  }
+  .logo-text { font-size: 13.5px; font-weight: 700; color: #e8eaf0; }
+
+  .menu-item {
+    display: flex; align-items: center; gap: 9px;
+    height: 36px; padding: 0 10px; border-radius: 8px;
+    font-size: 12.5px; color: #5c6470; margin-bottom: 2px; white-space: nowrap;
+    position: relative;
+  }
+  .menu-item .icon { font-size: 14px; opacity: 0.7; }
+  .menu-item.active { background: rgba(94,234,212,0.08); color: #5eead4; font-weight: 600; }
+  .menu-item.active::before {
+    content: ''; position: absolute; left: 0; top: 8px; bottom: 8px;
+    width: 2.5px; border-radius: 2px; background: #5eead4;
+  }
+  .menu-item.active .icon { opacity: 1; }
+  .menu-badge {
+    margin-left: auto; font-size: 10px; font-weight: 700;
+    background: rgba(94,234,212,0.15); color: #5eead4;
+    padding: 1px 6px; border-radius: 10px;
+  }
+
+  .sider-foot {
+    margin-top: auto; padding: 12px 10px 0;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #5eead4, #3b82f6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 800; color: #0a0c10;
+  }
+  .sider-user { font-size: 12px; color: #8a91a0; }
+  .sider-user b { display: block; color: #e8eaf0; font-weight: 600; font-size: 12.5px; }
+
+  /* ============ 主区域 ============ */
+  .main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+  .topbar {
+    height: 52px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+  }
+  .topbar-tabs { display: flex; gap: 2px; }
+  .tab {
+    font-size: 12.5px; color: #5c6470; padding: 5px 12px;
+    border-radius: 7px;
+  }
+  .tab.active { background: rgba(255,255,255,0.07); color: #e8eaf0; font-weight: 600; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .search {
+    height: 30px; width: 180px; border-radius: 7px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; padding: 0 10px;
+    font-size: 12px; color: #5c6470; gap: 6px;
+  }
+  .btn-primary {
+    height: 30px; padding: 0 14px; border-radius: 7px;
+    background: #5eead4; color: #0a0c10;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; gap: 5px;
+    cursor: pointer;
+  }
+
+  .content { padding: 24px 28px; overflow: auto; }
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 22px; }
+  .page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; }
+  .page-sub { font-size: 12.5px; color: #5c6470; margin-top: 4px; }
+
+  /* ============ 统计卡 ============ */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat {
+    background: #12151c; border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 16px 18px;
+    position: relative; overflow: hidden;
+  }
+  .stat::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--accent, #5eead4);
+    opacity: 0.6;
+  }
+  .stat-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .stat-label { font-size: 12px; color: #5c6470; font-weight: 500; }
+  .stat-icon { font-size: 15px; opacity: 0.5; }
+  .stat-num { font-size: 32px; font-weight: 800; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; color: var(--accent, #e8eaf0); }
+  .stat-foot { font-size: 11px; color: #5c6470; margin-top: 6px; }
+  .stat-foot b { color: var(--accent, #5eead4); font-weight: 600; }
+
+  /* ============ 图表 ============ */
+  .charts { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; }
+  .chart-card {
+    background: #12151c; border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 18px 20px;
+  }
+  .chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .chart-title { font-size: 13px; font-weight: 700; }
+  .chart-tabs { display: flex; gap: 2px; background: rgba(255,255,255,0.05); border-radius: 6px; padding: 2px; }
+  .chart-tab { font-size: 11px; padding: 3px 9px; border-radius: 5px; color: #5c6470; }
+  .chart-tab.active { background: rgba(255,255,255,0.1); color: #e8eaf0; font-weight: 600; }
+
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 130px; padding-bottom: 20px; position: relative; }
+  .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; }
+  .bar-label { font-size: 9.5px; color: #3d4450; }
+  .bar-line { position: absolute; bottom: 20px; left: 0; right: 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+
+  .donut-wrap { display: flex; align-items: center; gap: 18px; }
+  .donut-legend { flex: 1; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #8a91a0; padding: 4.5px 0; }
+  .legend-dot { width: 6px; height: 6px; border-radius: 2px; flex: none; }
+  .legend-val { margin-left: auto; font-weight: 700; color: #e8eaf0; font-variant-numeric: tabular-nums; }
+  .legend-bar { height: 3px; border-radius: 2px; background: rgba(255,255,255,0.07); margin-top: 3px; }
+  .legend-bar-fill { height: 100%; border-radius: 2px; }
+
+  .note {
+    margin-top: 18px; padding: 13px 16px;
+    background: rgba(94,234,212,0.04);
+    border: 1px solid rgba(94,234,212,0.12);
+    border-radius: 10px;
+    font-size: 12px; color: #5c6470; line-height: 1.7;
+  }
+  .note b { color: #5eead4; }
+</style>
+</head>
+<body>
+  <aside class="sider">
+    <div class="logo"><div class="logo-mark">J</div><div class="logo-text">JobFlow</div></div>
+    <div class="menu-item active"><span class="icon">◑</span>数据看板</div>
+    <div class="menu-item"><span class="icon">▦</span>求职看板<span class="menu-badge">12</span></div>
+    <div class="menu-item"><span class="icon">↗</span>投递记录</div>
+    <div class="menu-item"><span class="icon">◈</span>职位管理</div>
+    <div class="menu-item"><span class="icon">▣</span>公司管理</div>
+    <div class="menu-item"><span class="icon">≡</span>简历管理</div>
+    <div class="menu-item"><span class="icon">◍</span>面试管理<span class="menu-badge">2</span></div>
+    <div class="menu-item"><span class="icon">✦</span>AI 助手</div>
+    <div class="menu-item"><span class="icon">◔</span>面试题库</div>
+    <div class="sider-foot">
+      <div class="avatar">演</div>
+      <div class="sider-user">演示用户<b>demo</b></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-tabs">
+        <div class="tab active">概览</div>
+        <div class="tab">趋势</div>
+        <div class="tab">公司</div>
+      </div>
+      <div class="topbar-right">
+        <div class="search">⌕ 搜索…</div>
+        <div class="btn-primary">+ 新增投递</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-head">
+        <div>
+          <div class="page-title">数据看板</div>
+          <div class="page-sub">9月15日 · 本周 3 次投递，2 场面试</div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat" style="--accent:#5eead4">
+          <div class="stat-top"><span class="stat-label">总投递</span><span class="stat-icon">↗</span></div>
+          <div class="stat-num">12</div>
+          <div class="stat-foot">本周 <b>+3</b></div>
+        </div>
+        <div class="stat" style="--accent:#818cf8">
+          <div class="stat-top"><span class="stat-label">进入面试</span><span class="stat-icon">◍</span></div>
+          <div class="stat-num">4</div>
+          <div class="stat-foot">面试率 <b>33%</b></div>
+        </div>
+        <div class="stat" style="--accent:#34d399">
+          <div class="stat-top"><span class="stat-label">拿到 Offer</span><span class="stat-icon">◆</span></div>
+          <div class="stat-num">2</div>
+          <div class="stat-foot">Offer 率 <b>17%</b></div>
+        </div>
+        <div class="stat" style="--accent:#f87171">
+          <div class="stat-top"><span class="stat-label">被拒绝</span><span class="stat-icon">×</span></div>
+          <div class="stat-num">3</div>
+          <div class="stat-foot">拒绝率 <b>25%</b></div>
+        </div>
+      </div>
+
+      <div class="charts">
+        <div class="chart-card">
+          <div class="chart-head">
+            <span class="chart-title">近 30 天投递趋势</span>
+            <div class="chart-tabs">
+              <div class="chart-tab">7天</div>
+              <div class="chart-tab active">30天</div>
+              <div class="chart-tab">90天</div>
+            </div>
+          </div>
+          <div class="bar-chart">
+            <div class="bar-line"></div>
+            <div class="bar-group"><div class="bar" style="height:20%;background:rgba(94,234,212,0.15)"></div><span class="bar-label">8/18</span></div>
+            <div class="bar-group"><div class="bar" style="height:35%;background:rgba(94,234,212,0.2)"></div><span class="bar-label">8/21</span></div>
+            <div class="bar-group"><div class="bar" style="height:25%;background:rgba(94,234,212,0.15)"></div><span class="bar-label">8/24</span></div>
+            <div class="bar-group"><div class="bar" style="height:50%;background:rgba(94,234,212,0.3)"></div><span class="bar-label">8/27</span></div>
+            <div class="bar-group"><div class="bar" style="height:40%;background:rgba(94,234,212,0.25)"></div><span class="bar-label">8/30</span></div>
+            <div class="bar-group"><div class="bar" style="height:65%;background:rgba(94,234,212,0.4)"></div><span class="bar-label">9/2</span></div>
+            <div class="bar-group"><div class="bar" style="height:55%;background:rgba(94,234,212,0.35)"></div><span class="bar-label">9/5</span></div>
+            <div class="bar-group"><div class="bar" style="height:80%;background:rgba(94,234,212,0.55)"></div><span class="bar-label">9/8</span></div>
+            <div class="bar-group"><div class="bar" style="height:70%;background:rgba(94,234,212,0.45)"></div><span class="bar-label">9/11</span></div>
+            <div class="bar-group"><div class="bar" style="height:90%;background:#5eead4"></div><span class="bar-label">9/14</span></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head"><span class="chart-title">状态分布</span></div>
+          <div class="donut-wrap">
+            <svg width="100" height="100" viewBox="0 0 42 42">
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5"/>
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="#5eead4" stroke-width="5" stroke-dasharray="35 65" stroke-dashoffset="25" stroke-linecap="round"/>
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="#818cf8" stroke-width="5" stroke-dasharray="25 75" stroke-dashoffset="90" stroke-linecap="round"/>
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="#f87171" stroke-width="5" stroke-dasharray="18 82" stroke-dashoffset="65" stroke-linecap="round"/>
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="5" stroke-dasharray="22 78" stroke-dashoffset="47" stroke-linecap="round"/>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-item"><span class="legend-dot" style="background:#5eead4"></span>面试中<span class="legend-val">4</span></div>
+              <div class="legend-bar"><div class="legend-bar-fill" style="width:35%;background:#5eead4"></div></div>
+              <div class="legend-item" style="margin-top:8px"><span class="legend-dot" style="background:#818cf8"></span>Offer<span class="legend-val">2</span></div>
+              <div class="legend-bar"><div class="legend-bar-fill" style="width:20%;background:#818cf8"></div></div>
+              <div class="legend-item" style="margin-top:8px"><span class="legend-dot" style="background:#f87171"></span>已拒绝<span class="legend-val">3</span></div>
+              <div class="legend-bar"><div class="legend-bar-fill" style="width:25%;background:#f87171"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note"><b>设计语言说明：</b>深灰近黑底（#0a0c10）+ 高对比荧光青绿（#5eead4）单色强调、卡片顶边彩色条标识类别、Manrope 字体超紧字距大数字、毛玻璃顶栏，整体接近 Vercel / Raycast 的工程师美学。适合长时间使用的暗色场景。</div>
+    </div>
+  </div>
+</body>
+</html>
+

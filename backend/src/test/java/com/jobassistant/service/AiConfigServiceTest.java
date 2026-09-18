@@ -1,6 +1,7 @@
 package com.jobassistant.service;
 
 import com.jobassistant.ai.ApiKeyCipher;
+import com.jobassistant.common.BusinessException;
 import com.jobassistant.config.AiProperties;
 import com.jobassistant.dto.AiConfigSaveDTO;
 import com.jobassistant.entity.AiUserConfig;
@@ -14,6 +15,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -30,7 +32,7 @@ class AiConfigServiceTest {
         AiProperties properties = new AiProperties();
         service = new AiConfigServiceImpl(mapper, cipher, properties);
         SecurityContextHolder.getContext().setAuthentication(
-                new UsernamePasswordAuthenticationToken(new LoginUser(7L, "alice"), null));
+                new UsernamePasswordAuthenticationToken(new LoginUser(7L, "alice", "token-1"), null));
     }
 
     @AfterEach
@@ -56,11 +58,52 @@ class AiConfigServiceTest {
         when(mapper.selectOne(any())).thenReturn(stored);
 
         service.save(new AiConfigSaveDTO("DEEPSEEK", "CHAT_COMPLETIONS",
-                "https://api.deepseek.com/v1", "deepseek-chat", "", true));
+                "https://api.deepseek.com/v1", "deepseek-chat", "", true, null, null, null, null));
 
         verify(mapper).updateById(org.mockito.ArgumentMatchers.argThat(
                 value -> stored.getApiKeyEncrypted().equals(value.getApiKeyEncrypted())
                         && value.getUserId().equals(7L)));
+    }
+
+    @Test
+    void savesThinkingModeAndUnitPrices() {
+        when(mapper.selectOne(any())).thenReturn(null);
+
+        service.save(new AiConfigSaveDTO("DEEPSEEK", "CHAT_COMPLETIONS", "https://api.deepseek.com/v1",
+                "deepseek-flash", "sk-user-secret-value", true, "OFF", 1.0, 0.02, 4.0));
+
+        verify(mapper).insert(org.mockito.ArgumentMatchers.argThat(value ->
+                "OFF".equals(value.getThinkingMode())
+                        && Double.valueOf(1.0).equals(value.getInputPrice())
+                        && Double.valueOf(0.02).equals(value.getCachePrice())
+                        && Double.valueOf(4.0).equals(value.getOutputPrice())
+                        && value.getUserId().equals(7L)));
+    }
+
+    @Test
+    void blankThinkingModeFallsBackToVendorDefault() {
+        when(mapper.selectOne(any())).thenReturn(null);
+
+        service.save(new AiConfigSaveDTO("DEEPSEEK", "CHAT_COMPLETIONS", "https://api.deepseek.com/v1",
+                "deepseek-flash", "sk-user-secret-value", true, null, null, null, null));
+
+        verify(mapper).insert(org.mockito.ArgumentMatchers.argThat(
+                value -> "DEFAULT".equals(value.getThinkingMode())));
+    }
+
+    @Test
+    void rejectsUnknownThinkingModeAndNegativePrice() {
+        when(mapper.selectOne(any())).thenReturn(null);
+
+        assertThatThrownBy(() -> service.save(new AiConfigSaveDTO("DEEPSEEK", "CHAT_COMPLETIONS",
+                "https://api.deepseek.com/v1", "deepseek-flash", "sk-x", true, "SOMETIMES", null, null, null)))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("思考模式");
+
+        assertThatThrownBy(() -> service.save(new AiConfigSaveDTO("DEEPSEEK", "CHAT_COMPLETIONS",
+                "https://api.deepseek.com/v1", "deepseek-flash", "sk-x", true, "ON", -1.0, null, null)))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("输入单价");
     }
 
     @Test

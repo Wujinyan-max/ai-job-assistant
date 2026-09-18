@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.UUID;
 import org.springframework.util.StringUtils;
 
 @Slf4j
@@ -115,7 +116,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private LoginVO buildLoginVO(User user) {
-        String token = jwtUtils.generateToken(user.getId(), user.getUsername());
+        String tokenId = UUID.randomUUID().toString().replace("-", "");
+        User update = new User();
+        update.setId(user.getId());
+        update.setTokenId(tokenId);
+        userMapper.updateById(update);
+        String token = jwtUtils.generateToken(user.getId(), user.getUsername(), tokenId);
         return new LoginVO(token, "Bearer", jwtUtils.getExpireSeconds(), UserVO.from(user));
     }
 }

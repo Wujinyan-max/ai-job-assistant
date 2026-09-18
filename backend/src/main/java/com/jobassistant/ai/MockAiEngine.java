@@ -1,7 +1,9 @@
 package com.jobassistant.ai;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jobassistant.vo.ResumeStructureVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -56,7 +58,12 @@ public class MockAiEngine {
         Map<String, Object> result = switch (request.task()) {
             case JD_ANALYZE -> analyzeJd(text(request, "jd"));
             case RESUME_MATCH -> matchResume(text(request, "jd"), text(request, "resume"));
+            case RESUME_OPTIMIZE -> optimizeResume(request);
+            case RESUME_STRUCTURE -> structureResume(request);
+            // 视觉识别没有本地实现：没配 API Key 时不走这条路，真走到这里就退回规则解析
+            case RESUME_VISION -> structureResume(request);
             case INTERVIEW_QUESTION -> generateQuestions(request);
+            case REVIEW_QUESTIONS -> extractQuestionsFromReview(request);
         };
         try {
             return objectMapper.writeValueAsString(result);
@@ -167,6 +174,261 @@ public class MockAiEngine {
         return "匹配度偏低，建议先补齐核心技能";
     }
 
+    // -------------------------------------------------------------- 简历专项优化
+
+    /**
+     * 句首弱动词 → 结果导向的说法。
+     * <p>本地引擎只换表达、不替候选人编造内容，所以换完动词后会把「缺量化结果」的问题
+     * 作为占位提示补回去，让用户自己填数据。</p>
+     */
+    private static final List<Map.Entry<String, String>> WEAK_VERBS = List.of(
+            Map.entry("负责", "主导"),
+            Map.entry("参与", "深度参与"),
+            Map.entry("协助", "协同推进"),
+            Map.entry("帮助", "推动"),
+            Map.entry("完成", "交付"),
+            Map.entry("做了", "落地实现"));
+
+    /** 简历里常见的板块标题，用来给每条改写打上板块标签 */
+    private static final Pattern SECTION_HEADING = Pattern.compile(
+            "^[▮■▪●◆◇□▸▶*·•\\s-]*(?:[一二三四五六七八九十0-9]+\\s*[、.．)]\\s*)?"
+                    + "(项目经历|项目经验|工作经历|实习经历|教育经历|教育背景|专业技能|技能|个人简介|自我评价)\\s*[:：]?$");
+
+    /** 结构化简历经常把板块名和值放在同一行，例如「技能：Java、Redis」。 */
+    private static final Pattern LABELED_LINE = Pattern.compile(
+            "^[▮■▪●◆◇□▸▶*·•\\s-]*(姓名|学历|工作年限|技能|专业技能|个人简介|自我评价|教育经历|教育背景|简历正文|主修课程)\\s*[:：]\\s*(.*)$");
+
+    private static final Pattern QUANTIFIED = Pattern.compile("\\d|%|qps|ms|万|亿|倍", Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern LINE_PREFIX = Pattern.compile("^\\s*(?:\\d+[.、)]|[-*·])\\s*");
+
+    /** 只有描述经历和成果的板块才提示补量化数据：给「技能」这种罗列行加数据占位毫无意义 */
+    private static final Set<String> QUANTIFIABLE_SECTIONS =
+            Set.of("项目经历", "项目经验", "工作经历", "实习经历");
+
+    /** 太短的行多半是标题或零碎词，不值得改写 */
+    private static final int MIN_REWRITE_LENGTH = 6;
+
+    /** 一条素材最多改写多少条，避免用户贴整份简历时结果长到没法看 */
+    private static final int MAX_REWRITES = 12;
+
+    private Map<String, Object> optimizeResume(AiRequest request) {
+        String jd = text(request, "jd");
+        String raw = text(request, "resume");
+
+        Set<String> required = new LinkedHashSet<>(extract(jd, TECH_BY_LENGTH));
+        required.addAll(extract(jd, CN_BY_LENGTH));
+        Set<String> owned = new LinkedHashSet<>(extract(raw, TECH_BY_LENGTH));
+        owned.addAll(extract(raw, CN_BY_LENGTH));
+
+        List<String> matched = required.stream().filter(owned::contains).toList();
+        List<String> missing = required.stream().filter(skill -> !owned.contains(skill)).toList();
+
+        List<Map<String, Object>> rewrites = new ArrayList<>();
+        int contentLines = 0;
+        for (ResumeLine line : sectionedLines(raw)) {
+            String trimmed = line.text();
+            if (trimmed.length() < MIN_REWRITE_LENGTH) {
+                continue;
+            }
+            contentLines++;
+            String optimized = rewriteLine(line.section(), trimmed);
+            // 没有实际改动的句子不进改写列表：并排展示两条一样的文案只会干扰阅读
+            if (optimized == null || rewrites.size() >= MAX_REWRITES) {
+                continue;
+            }
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("section", line.section());
+            item.put("original", trimmed);
+            item.put("optimized", optimized);
+            item.put("reason", rewriteReason(trimmed));
+            rewrites.add(item);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("rewrites", rewrites);
+        result.put("matchedKeywords", matched);
+        result.put("missingKeywords", missing);
+        result.put("suggestions", optimizeSuggestions(rewrites, missing));
+        result.put("optimizedContent", buildOptimizedContent(rewrites, owned, required, missing));
+        result.put("comment", optimizeComment(rewrites, contentLines, matched.size(), required.size()));
+        result.put("newProjects", buildMockNewProjects(missing));
+        return result;
+    }
+
+    private record ResumeLine(String section, String text) {
+    }
+
+    /** 优先复用排版解析器的板块判断；没有标题时才回退到原来的逐行规则。 */
+    private static List<ResumeLine> sectionedLines(String raw) {
+        List<ResumeStructureParser.ClassifiedSection> classified = ResumeStructureParser.classifySections(raw);
+        if (!classified.isEmpty()) {
+            List<ResumeLine> lines = new ArrayList<>();
+            for (ResumeStructureParser.ClassifiedSection block : classified) {
+                String section = sectionLabel(block.key());
+                for (String text : block.lines()) {
+                    if (!text.isBlank()) {
+                        lines.add(new ResumeLine(section, text.trim()));
+                    }
+                }
+            }
+            return lines;
+        }
+
+        List<ResumeLine> lines = new ArrayList<>();
+        String section = "项目经历";
+        for (String rawLine : raw.split("\\R")) {
+            String text = rawLine.trim();
+            if (text.isEmpty()) {
+                continue;
+            }
+            Matcher heading = SECTION_HEADING.matcher(text);
+            if (heading.matches()) {
+                section = normalizeSection(heading.group(1));
+                continue;
+            }
+            Matcher labeled = LABELED_LINE.matcher(text);
+            if (labeled.matches()) {
+                section = sectionForLabel(labeled.group(1), section);
+                text = labeled.group(2).trim();
+            }
+            if (!text.isEmpty()) {
+                lines.add(new ResumeLine(section, text));
+            }
+        }
+        return lines;
+    }
+
+    private static String sectionLabel(String key) {
+        return switch (key) {
+            case "education" -> "教育经历";
+            case "work" -> "工作经历";
+            case "projects" -> "项目经历";
+            case "skills" -> "技能";
+            case "honors" -> "荣誉证书";
+            case "summary" -> "自我评价";
+            default -> key;
+        };
+    }
+
+    private static String normalizeSection(String section) {
+        return "教育背景".equals(section) ? "教育经历" : section;
+    }
+
+    private static String sectionForLabel(String label, String currentSection) {
+        return switch (label) {
+            case "技能", "专业技能" -> "技能";
+            case "个人简介", "自我评价" -> label;
+            case "学历", "教育经历", "教育背景", "主修课程" -> "教育经历";
+            case "姓名", "工作年限" -> "基本信息";
+            case "简历正文" -> "项目经历";
+            default -> currentSection;
+        };
+    }
+
+    /** 返回改写后的表达；这句话已经没有可改的地方时返回 null */
+    private static String rewriteLine(String section, String line) {
+        String rewritten = LINE_PREFIX.matcher(line).replaceFirst("");
+        boolean changed = !rewritten.equals(line);
+        for (Map.Entry<String, String> entry : WEAK_VERBS) {
+            if (rewritten.startsWith(entry.getKey())) {
+                rewritten = entry.getValue() + rewritten.substring(entry.getKey().length());
+                changed = true;
+                break;
+            }
+        }
+        if (QUANTIFIABLE_SECTIONS.contains(section) && !QUANTIFIED.matcher(rewritten).find()) {
+            rewritten = rewritten + "，【待补充：量化结果，如 QPS / 耗时 / 提升幅度】";
+            changed = true;
+        }
+        return changed ? rewritten : null;
+    }
+
+    private static String rewriteReason(String line) {
+        String stripped = LINE_PREFIX.matcher(line).replaceFirst("");
+        for (Map.Entry<String, String> entry : WEAK_VERBS) {
+            if (stripped.startsWith(entry.getKey())) {
+                return "句首「" + entry.getKey() + "」偏弱，换成结果导向的动词更有说服力";
+            }
+        }
+        if (!QUANTIFIED.matcher(line).find()) {
+            return "只有过程没有结果，补上量化数据 HR 才能判断项目复杂度";
+        }
+        if (!extract(line, TECH_BY_LENGTH).isEmpty()) {
+            return "技术点保留，把与岗位最相关的技术栈前置到句首";
+        }
+        return "表述偏流水账，收拢成「做了什么 + 拿到什么结果」";
+    }
+
+    private static List<String> optimizeSuggestions(List<Map<String, Object>> rewrites, List<String> missing) {
+        List<String> suggestions = new ArrayList<>();
+        missing.stream().limit(3).forEach(skill ->
+                suggestions.add("补充「" + skill + "」相关的项目产出，写清你负责的部分和最后的结果"));
+        if (rewrites.isEmpty()) {
+            suggestions.add("先补齐项目经历：项目背景、你的职责、技术方案、最终结果，每段至少写一句");
+        } else if (rewrites.stream()
+                .anyMatch(item -> !QUANTIFIED.matcher((String) item.get("original")).find())) {
+            suggestions.add("每条经历都补量化结果：QPS、耗时、成本、成功率，给区间也比没有强");
+        }
+        suggestions.add("把与目标岗位无关的技术细节删掉，把 JD 里的关键词挪到每条的开头");
+        return suggestions.stream().limit(4).toList();
+    }
+
+    private static List<Map<String, Object>> buildMockNewProjects(List<String> missing) {
+        if (missing == null || missing.isEmpty()) {
+            return List.of();
+        }
+        String skill = missing.get(0);
+        Map<String, Object> project = new LinkedHashMap<>();
+        project.put("title", "示例项目（本地模拟）");
+        project.put("role", "核心开发");
+        project.put("description", "覆盖「" + skill + "」的示例项目，配置 API Key 后由 AI 生成真实内容");
+        project.put("techStack", List.of(skill));
+        project.put("bullets", List.of("示例：负责" + skill + "相关模块的设计与落地"));
+        project.put("fabricated", true);
+        return List.of(project);
+    }
+
+    private static String buildOptimizedContent(List<Map<String, Object>> rewrites, Set<String> owned,
+                                                Set<String> required, List<String> missing) {
+        StringBuilder content = new StringBuilder();
+        // 岗位要求的技能排在前面，HR 第一眼看到的才是与岗位相关的能力
+        List<String> skills = new ArrayList<>(owned);
+        skills.sort(Comparator.comparingInt((String skill) -> required.contains(skill) ? 0 : 1));
+        if (!skills.isEmpty()) {
+            content.append("技能：").append(String.join("、", skills)).append('\n');
+        }
+        Map<String, List<String>> grouped = new LinkedHashMap<>();
+        for (Map<String, Object> item : rewrites) {
+            grouped.computeIfAbsent((String) item.get("section"), key -> new ArrayList<>())
+                    .add("- " + item.get("optimized"));
+        }
+        grouped.forEach((name, lines) -> {
+            content.append(name).append("：\n");
+            lines.forEach(line -> content.append(line).append('\n'));
+        });
+        if (!missing.isEmpty()) {
+            content.append("【待补充】")
+                    .append(String.join("、", missing.stream().limit(5).toList()))
+                    .append("：补上对应的项目产出与量化结果\n");
+        }
+        return content.toString();
+    }
+
+    private static String optimizeComment(List<Map<String, Object>> rewrites, int contentLines,
+                                          int matchedCount, int requiredCount) {
+        if (rewrites.isEmpty()) {
+            return contentLines == 0
+                    ? "没有识别到可以改写的经历描述，先补充「做了什么 + 拿到什么结果」的项目细节，再来优化会更有效。"
+                    : "素材里这几句已经比较具体，没有识别到需要改写的表达。先按下面的清单补齐关键词，再回来优化会更有效。";
+        }
+        String coverage = requiredCount == 0
+                ? "JD 里没有识别到具体的技术关键词"
+                : "命中岗位关键词 " + matchedCount + "/" + requiredCount + " 个";
+        return "共改写 " + rewrites.size() + " 条，" + coverage
+                + "。本轮由本地模拟引擎按规则改写，配置 API Key 后可以得到更贴合岗位的语义级优化。";
+    }
+
     // ---------------------------------------------------------------- 面试题生成
 
     @SuppressWarnings("unchecked")
@@ -179,11 +441,12 @@ public class MockAiEngine {
 
         List<Map<String, Object>> questions = new ArrayList<>();
         for (String category : categories) {
-            List<Question> bank = QUESTION_BANK.getOrDefault(category, QUESTION_BANK.get("项目"));
+            String normalized = QuestionCategory.normalize(category);
+            List<Question> bank = bankOf(normalized);
             for (int i = 0; i < Math.min(count, bank.size()); i++) {
                 Question q = bank.get(i);
                 Map<String, Object> item = new LinkedHashMap<>();
-                item.put("category", category);
+                item.put("category", normalized);
                 item.put("question", q.question());
                 item.put("difficulty", difficulty);
                 item.put("answer", q.answer());
@@ -195,23 +458,39 @@ public class MockAiEngine {
         return result;
     }
 
+    /**
+     * 固定分类到模拟题库的映射：模拟题库是按技术点分桶的，一个固定分类可能对应多个桶
+     * （例如「数据库与缓存」同时命中 MySQL 和 Redis），这里合并后再取题。
+     */
+    private static List<Question> bankOf(String category) {
+        List<String> keys = BANK_KEYS_BY_CATEGORY.getOrDefault(category, List.of("项目"));
+        List<Question> merged = new ArrayList<>();
+        for (String key : keys) {
+            List<Question> bank = QUESTION_BANK.get(key);
+            if (bank != null) {
+                merged.addAll(bank);
+            }
+        }
+        return merged;
+    }
+
     private List<String> suggestCategories(String jd) {
         Set<String> skills = new LinkedHashSet<>(extract(jd, TECH_BY_LENGTH));
-        List<String> categories = new ArrayList<>();
+        Set<String> categories = new LinkedHashSet<>();
         if (skills.contains("Java") || skills.contains("JVM")) {
-            categories.add("Java基础");
+            categories.add(QuestionCategory.LANGUAGE.label());
         }
         if (skills.contains("Spring Boot") || skills.contains("Spring Cloud") || skills.contains("Spring MVC")) {
-            categories.add("Spring Boot");
+            categories.add(QuestionCategory.FRAMEWORK.label());
         }
         if (skills.contains("MySQL") || skills.contains("PostgreSQL") || skills.contains("Oracle")) {
-            categories.add("MySQL");
+            categories.add(QuestionCategory.DATABASE.label());
         }
         if (skills.contains("Redis")) {
-            categories.add("Redis");
+            categories.add(QuestionCategory.DATABASE.label());
         }
-        categories.add("项目");
-        categories.add("HR");
+        categories.add(QuestionCategory.PROJECT.label());
+        categories.add(QuestionCategory.HR.label());
         return categories.stream().limit(5).toList();
     }
 
@@ -219,6 +498,15 @@ public class MockAiEngine {
     }
 
     private static final Map<String, List<Question>> QUESTION_BANK = buildQuestionBank();
+
+    private static final Map<String, List<String>> BANK_KEYS_BY_CATEGORY = Map.of(
+            "编程语言与基础", List.of("Java基础"),
+            "框架与中间件", List.of("Spring Boot"),
+            "数据库与缓存", List.of("MySQL", "Redis"),
+            "系统设计与性能", List.of("项目"),
+            "测试与质量", List.of("项目"),
+            "项目与业务", List.of("项目"),
+            "HR与软素质", List.of("HR"));
 
     private static Map<String, List<Question>> buildQuestionBank() {
         Map<String, List<Question>> bank = new LinkedHashMap<>();
@@ -291,7 +579,110 @@ public class MockAiEngine {
         return bank;
     }
 
+    // ---------------------------------------------------------------- 简历结构化
+
+    /**
+     * 简历结构化：把纯文本简历（含 PDF 复制出来的「标题被挤到正文后面」的排版）识别成固定 JSON 结构。
+     * 规则都在 {@link ResumeStructureParser} 里，这里只负责转成与真实模型一致的 Map。
+     */
+    private Map<String, Object> structureResume(AiRequest request) {
+        ResumeStructureVO vo = ResumeStructureParser.parse(text(request, "resume"));
+        return objectMapper.convertValue(vo, new TypeReference<Map<String, Object>>() {
+        });
+    }
     // -------------------------------------------------------------------- 工具方法
+
+    // ------------------------------------------------------------ 面试复盘提取题目
+
+    /** 复盘里常见的「这是面试官问的」信号词 */
+    private static final List<String> ASK_MARKERS = List.of(
+            "被问到", "问到了", "问了我", "问的是", "面试官问", "提问", "考点", "题目", "问题");
+
+    /** 「被问到 XXX」「问了 XXX」这类句式里，真正的问题从这些词开始 */
+    private static final Pattern QUESTION_SPLIT = Pattern.compile("[?？]");
+
+    private static final Pattern LEADING_NOISE = Pattern.compile(
+            "^\\s*(?:\\d+[.、)]|[-*·]|第\\s*\\d+\\s*[轮次]?[：:]?|面试官|hr|HR)\\s*[：:，,、]?\\s*");
+
+    /**
+     * 从复盘文本里提取面试题。
+     * <p>本地引擎只能做规则抽取：优先捞带问号的句子和「被问到 XXX」的句式，
+     * 捞不到时再退化成按已知技术关键词组题，保证这个按钮在没配 Key 时也有产出。</p>
+     */
+    private Map<String, Object> extractQuestionsFromReview(AiRequest request) {
+        String review = text(request, "review");
+        List<Map<String, Object>> questions = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+
+        for (String raw : review.split("\\R|(?<=[。；;])")) {
+            String line = raw.strip();
+            if (line.length() < 6) {
+                continue;
+            }
+            for (String piece : QUESTION_SPLIT.split(line)) {
+                String question = cleanQuestion(piece);
+                if (question == null || !seen.add(question)) {
+                    continue;
+                }
+                questions.add(buildReviewQuestion(question));
+            }
+        }
+
+        // 复盘只写了知识点、没写问句时，用命中的技术关键词补题
+        if (questions.isEmpty()) {
+            for (String keyword : extract(review, TECH_BY_LENGTH)) {
+                String question = "请讲讲「" + keyword + "」的原理和常见考点";
+                if (seen.add(question)) {
+                questions.add(buildReviewQuestion(question));
+                }
+            }
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("questions", questions);
+        return result;
+    }
+
+    /** 把一条复盘片段整理成完整问句，不像问题的片段返回 null */
+    private String cleanQuestion(String piece) {
+        String text = LEADING_NOISE.matcher(piece.strip()).replaceFirst("").strip();
+        text = text.replaceFirst("^(?:被|我)?(?:问到|问了|问的是|问了问)[：:，,]?\\s*", "");
+        if (text.length() < 6 || text.length() > 120) {
+            return null;
+        }
+        boolean looksLikeQuestion = piece.contains("?") || piece.contains("？")
+                || ASK_MARKERS.stream().anyMatch(text::contains)
+                || containsAny(text, "什么", "如何", "怎么", "为什么", "区别", "原理", "介绍", "说说", "讲讲");
+        if (!looksLikeQuestion) {
+            return null;
+        }
+        return text.endsWith("？") || text.endsWith("?") ? text : text + "？";
+    }
+
+    private Map<String, Object> buildReviewQuestion(String question) {
+        String category = QuestionCategory.normalize(firstKeyword(question));
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("category", category);
+        item.put("question", question);
+        item.put("difficulty", "MEDIUM");
+        item.put("answer", "结合本次面试复盘的记录补充答案：先讲清核心概念与原理，"
+                + "再结合自己做过的项目说明实际用法，最后补上这次没答好的点。");
+        return item;
+    }
+
+    private String firstKeyword(String question) {
+        for (String keyword : TECH_BY_LENGTH) {
+            if (indexOfIgnoreCase(question, keyword) >= 0) {
+                return keyword;
+            }
+        }
+        for (String keyword : CN_BY_LENGTH) {
+            if (question.contains(keyword)) {
+                return keyword;
+            }
+        }
+        return question;
+    }
 
     private static String text(AiRequest request, String key) {
         Object value = request.inputs().get(key);

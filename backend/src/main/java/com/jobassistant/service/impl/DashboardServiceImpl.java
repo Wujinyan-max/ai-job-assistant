@@ -14,6 +14,7 @@ import com.jobassistant.mapper.ResumeMapper;
 import com.jobassistant.security.SecurityUtils;
 import com.jobassistant.service.DashboardService;
 import com.jobassistant.vo.DashboardVO;
+import com.jobassistant.vo.ResumePerformanceVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -34,11 +35,40 @@ public class DashboardServiceImpl implements DashboardService {
     private static final int MIN_TREND_DAYS = 7;
     private static final int MAX_TREND_DAYS = 90;
 
+    /** 简历效果分析的默认统计窗口 */
+    private static final int DEFAULT_REPORT_DAYS = 30;
+    private static final int MAX_REPORT_DAYS = 365;
+
     private final JobApplicationMapper applicationMapper;
     private final CompanyMapper companyMapper;
     private final JobMapper jobMapper;
     private final ResumeMapper resumeMapper;
     private final InterviewQuestionMapper questionMapper;
+
+    @Override
+    public List<ResumePerformanceVO> resumePerformance(int days) {
+        int window = days <= 0 ? DEFAULT_REPORT_DAYS : Math.min(days, MAX_REPORT_DAYS);
+        Long userId = SecurityUtils.getUserId();
+        LocalDateTime from = LocalDate.now().minusDays(window - 1L).atStartOfDay();
+
+        List<ResumePerformanceVO> report = new ArrayList<>();
+        for (Map<String, Object> row : applicationMapper.countByResume(userId, from)) {
+            long applications = number(row.get("applicationCount"));
+            long interviews = number(row.get("interviewCount"));
+            long offers = number(row.get("offerCount"));
+            Object resumeId = row.get("resumeId");
+            Object resumeTitle = row.get("resumeTitle");
+            report.add(new ResumePerformanceVO(
+                    resumeId instanceof Number id ? id.longValue() : null,
+                    resumeTitle == null ? "未关联简历" : resumeTitle.toString(),
+                    applications,
+                    interviews,
+                    offers,
+                    rate(interviews, applications),
+                    rate(offers, applications)));
+        }
+        return report;
+    }
 
     @Override
     public DashboardVO overview(int trendDays) {
@@ -148,6 +178,11 @@ public class DashboardServiceImpl implements DashboardService {
 
     private long count(Long value) {
         return value == null ? 0L : value;
+    }
+
+    /** 聚合 SQL 里的 SUM/COUNT 在不同驱动下可能是 BigInteger 等类型，统一转 long */
+    private long number(Object value) {
+        return value instanceof Number n ? n.longValue() : 0L;
     }
 
     /** 百分比保留一位小数 */

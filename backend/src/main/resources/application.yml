@@ -14,9 +14,9 @@ spring:
       max-request-size: 10MB
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ai_job_assistant?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ai_job_assistant}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:123456}
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
@@ -58,8 +58,26 @@ ai:
   api-key: ${AI_API_KEY:}
   model: ${AI_MODEL:gpt-4o-mini}
   timeout-seconds: 90
+  # 连接阶段超时与重试：部分服务商的 CDN 会偶发连不上，重试可以让请求自愈
+  connect-timeout-seconds: 15
+  max-attempts: 3
   # 生产环境务必通过环境变量设置一个足够长的随机值，用于加密用户 API Key
   config-encryption-key: ${AI_CONFIG_ENCRYPTION_KEY:change-this-development-secret}
+  # 可选：强制指定 HTTP 代理。默认留空，系统会自动探测 Windows 代理设置；
+  # 自动探测失败或需要强制指定时才配置，如 AI_PROXY_HOST=127.0.0.1 AI_PROXY_PORT=7897
+  proxy-host: ${AI_PROXY_HOST:}
+  proxy-port: ${AI_PROXY_PORT:}
+
+# ---------------------------------------------------------------------------
+# 接口限流：只用于防止注册刷号；登录不做任何限制
+# 单机内存实现，多实例部署时需要改为 Redis
+# ---------------------------------------------------------------------------
+rate-limit:
+  enabled: ${RATE_LIMIT_ENABLED:true}
+  # 注册：同一 IP 一小时内最多 3 次，累计上限 10 个账号
+  register-max-per-ip: ${RATE_LIMIT_REGISTER_MAX:3}
+  register-window-minutes: 60
+  register-max-total-per-ip: ${RATE_LIMIT_REGISTER_TOTAL:10}
 
 springdoc:
   swagger-ui:

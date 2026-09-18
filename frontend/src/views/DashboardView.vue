@@ -1,16 +1,28 @@
 <template>
   <div class="page" v-loading="loading">
     <section class="dashboard-hero">
-      <div>
-        <div class="hero-kicker">今日专注 · 保持节奏</div>
-        <h1>{{ greeting }}，{{ userName }}</h1>
-        <p>继续向前，机会会在认真准备的人身上发生。</p>
+      <div class="hero-main">
+        <div class="page-kicker">Overview · 数据看板</div>
+        <h1 class="hero-title">{{ greeting }}，{{ userName }}</h1>
+        <p class="hero-desc">{{ today }} · 继续向前，机会会在认真准备的人身上发生。</p>
       </div>
-      <div class="hero-side">
-        <div class="hero-date">{{ today }}</div>
-        <div class="hero-quote">“机会是留给准备充分的人。”</div>
+      <div class="hero-quote-card">
+        <div class="quote-label">今日一句</div>
+        <div class="quote-text">"机会是留给准备充分的人。"</div>
       </div>
     </section>
+
+    <!-- 面试提醒：有未来 7 天的面试才出现，点进去直接看面试列表 -->
+    <div v-if="upcoming.length" class="interview-alert" @click="goInterviews">
+      <span class="alert-dot">{{ upcoming.length }}</span>
+      <span class="alert-text">
+        {{ upcoming.length }} 场面试在 7 天内，最近一场
+        {{ interviewTimeLabel(upcoming[0].interviewTime) }}
+        <template v-if="upcoming[0].companyName"> · {{ upcoming[0].companyName }}</template>
+      </span>
+      <el-icon class="alert-arrow"><ArrowRight /></el-icon>
+    </div>
+
     <div class="stat-grid">
       <div class="stat-card">
         <div class="stat-head">
@@ -90,6 +102,41 @@
       </div>
     </div>
 
+    <div class="card" style="margin-top: 16px">
+      <div class="card-title">
+        <span>简历效果分析</span>
+        <el-radio-group v-model="reportDays" size="small" @change="loadReport">
+          <el-radio-button :value="7">7 天</el-radio-button>
+          <el-radio-button :value="30">30 天</el-radio-button>
+          <el-radio-button :value="90">90 天</el-radio-button>
+        </el-radio-group>
+      </div>
+      <el-empty v-if="!report.length" description="先投递几份简历再来看看" :image-size="80" />
+      <el-table v-else :data="report" size="small">
+        <el-table-column label="简历版本" min-width="180" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span :class="{ muted: !row.resumeId }">{{ row.resumeTitle }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="applicationCount" label="投递" width="80" align="center" />
+        <el-table-column prop="interviewCount" label="面试" width="80" align="center" />
+        <el-table-column prop="offerCount" label="Offer" width="80" align="center" />
+        <el-table-column label="面试率" width="110">
+          <template #default="{ row }">
+            <span class="rate-value">{{ row.interviewRate }}%</span>
+            <el-progress :percentage="row.interviewRate" :show-text="false" :stroke-width="4" />
+          </template>
+        </el-table-column>
+        <el-table-column label="Offer 率" width="110">
+          <template #default="{ row }">
+            <span class="rate-value is-offer">{{ row.offerRate }}%</span>
+            <el-progress :percentage="row.offerRate" :show-text="false" :stroke-width="4"
+                         :color="SUCCESS" />
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+
     <div class="stat-grid" style="margin-top: 16px">
       <div class="stat-card">
         <div class="stat-head">
@@ -125,20 +172,25 @@
 
 <script setup>
 import { computed, onActivated, onBeforeUnmount, onMounted, reactive, ref, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { dashboardApi, interviewApi } from '@/api'
 import { useUserStore } from '@/store/user'
+import { interviewTimeLabel } from '@/utils/datetime'
+import { ArrowRight } from '@element-plus/icons-vue'
 import {
   AXIS_LABEL,
   AXIS_LINE,
   BRAND,
   BRAND_HOVER,
   SPLIT_LINE_STYLE,
+  SUCCESS,
   TEXT_REGULAR,
   statusColor
 } from '@/utils/theme'
 
 const loading = ref(false)
+const router = useRouter()
 const userStore = useUserStore()
 const userName = computed(() => userStore.user?.nickname || userStore.user?.username || '求职者')
 const greeting = computed(() => {
@@ -151,8 +203,10 @@ const greeting = computed(() => {
 const today = new Intl.DateTimeFormat('zh-CN', {
   year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
 }).format(new Date())
-const trendDays = ref(30)
+const trendDays = ref(7)
 const upcoming = ref([])
+const reportDays = ref(30)
+const report = ref([])
 const data = reactive({
   totalApplications: 0,
   interviewCount: 0,
@@ -178,6 +232,11 @@ let charts = []
 const typeLabel = (type) =>
   ({ PHONE: '电话', VIDEO: '视频', ONSITE: '现场', WRITTEN: '笔试' }[type] || type)
 
+/** 红点点进去直接看面试列表，并带上「只看未来 7 天」的筛选 */
+function goInterviews() {
+  router.push({ path: '/interviews', query: { range: 7 } })
+}
+
 async function load() {
   loading.value = true
   try {
@@ -187,11 +246,27 @@ async function load() {
     ])
     Object.assign(data, overview)
     upcoming.value = interviews
+    syncTitle()
+    loadReport()
     await nextTick()
     render()
   } finally {
     loading.value = false
   }
+}
+
+/** 简历效果分析：数据与投递记录实时同步，每次进页面都重新拉 */
+async function loadReport() {
+  report.value = await dashboardApi.resumePerformance(reportDays.value)
+}
+
+/**
+ * 浏览器标签页标题带上未读面试数，切到别的标签也能看到提醒。
+ * 路由守卫会按页面重置标题，这里只负责在首页把它改掉。
+ */
+function syncTitle() {
+  const count = upcoming.value.length
+  document.title = count ? `(${count}) 职得 JobPath` : '职得 JobPath'
 }
 
 function render() {
@@ -224,8 +299,8 @@ function render() {
         itemStyle: { color: BRAND },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(59,114,245,0.28)' },
-            { offset: 1, color: 'rgba(59,114,245,0.02)' }
+            { offset: 0, color: 'rgba(156,124,60,0.16)' },
+            { offset: 1, color: 'rgba(156,124,60,0.01)' }
           ])
         }
       }
@@ -300,43 +375,106 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .dashboard-hero {
-  position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 16px;
-  padding: 4px 2px 2px;
+  gap: 20px;
+  margin-bottom: 22px;
+  padding: 22px 26px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
 }
 
-.dashboard-hero::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: -8px;
-  width: 220px;
-  height: 86px;
-  pointer-events: none;
-  background: radial-gradient(circle at 70% 60%, rgba(59,114,245,.13), transparent 68%);
-}
-
-.hero-kicker {
-  color: var(--brand);
-  font-size: 11px;
+.hero-title {
+  margin: 4px 0 5px;
+  font-family: var(--font-display);
+  font-size: 26px;
   font-weight: 700;
-  letter-spacing: 1.2px;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
 }
 
-.dashboard-hero h1 {
-  margin: 5px 0 3px;
-  font-size: 23px;
-  letter-spacing: -.5px;
+.hero-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 
-.dashboard-hero p, .hero-side { margin: 0; color: var(--text-secondary); font-size: 12px; }
-.hero-side { position: relative; z-index: 1; text-align: right; line-height: 1.8; }
-.hero-date { color: var(--text-regular); font-weight: 600; }
-.hero-quote { color: var(--brand-deep); }
+.hero-quote-card {
+  flex: none;
+  padding: 12px 18px;
+  background: var(--brand-softer);
+  border: 1px solid var(--brand-soft);
+  border-radius: var(--radius-sm);
+  max-width: 260px;
+}
+
+/* 7 天内面试提醒条：有面试才渲染，点击进面试列表 */
+.interview-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  margin-bottom: 16px;
+  background: #fdf6ec;
+  border: 1px solid #f0dcc0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease;
+}
+
+.interview-alert:hover {
+  background: #fbf0df;
+  border-color: var(--warning);
+}
+
+.alert-dot {
+  flex: none;
+  min-width: 21px;
+  height: 21px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--warning);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 21px;
+  text-align: center;
+}
+
+.alert-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--brand-deep);
+}
+
+.alert-arrow {
+  flex: none;
+  color: var(--warning);
+}
+
+.quote-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brand);
+  margin-bottom: 5px;
+}
+
+.quote-text {
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  color: var(--brand-deep);
+  line-height: 1.65;
+}
+
+@media (max-width: 700px) {
+  .dashboard-hero { flex-direction: column; align-items: flex-start; }
+  .hero-quote-card { max-width: none; width: 100%; }
+}
 
 .grid-2 {
   display: grid;
@@ -350,10 +488,7 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (max-width: 700px) {
-  .dashboard-hero { align-items: flex-start; flex-direction: column; }
-  .hero-side { text-align: left; }
-}
+
 
 .card-title {
   display: flex;
@@ -366,5 +501,17 @@ onBeforeUnmount(() => {
 .interview-title {
   font-weight: 600;
   font-size: 14px;
+}
+
+/* 简历效果分析的百分比 + 细进度条 */
+.rate-value {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.rate-value.is-offer {
+  color: var(--success);
 }
 </style>

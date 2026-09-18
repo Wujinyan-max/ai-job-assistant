@@ -17,6 +17,7 @@
 - [技术栈](#技术栈)
 - [系统架构](#系统架构)
 - [快速开始](#快速开始)
+- [安全防护](#安全防护)
 - [AI 能力说明](#ai-能力说明)
 - [数据库设计](#数据库设计)
 - [接口概览](#接口概览)
@@ -32,7 +33,7 @@
 | 亮点 | 说明 |
 | --- | --- |
 | **完整业务闭环** | 投递记录是核心聚合根，串起公司、职位、简历、面试、AI 分析，而不是互不相干的单表 CRUD |
-| **状态机驱动** | 投递有 7 个状态（收藏 / 已投递 / 笔试 / 面试 / Offer / 已拒绝 / 已关闭），新增面试会自动把投递推进到「面试」，标记面试未通过会自动置为「已拒绝」 |
+| **状态机驱动** | 投递有 7 个状态（收藏 / 已投递 / 笔试 / 面试 / Offer / 已拒绝 / 已放弃），新增面试会自动把投递推进到「面试」，标记面试未通过自动置为「已拒绝」，标记通过则会问一句「下一步」并按选择同步成 Offer 或自动建下一轮草稿 |
 | **看板视图** | 7 列拖拽式求职看板（`/board`），一眼看清每个岗位卡在哪个环节 |
 | **AI 降级设计** | 没配 `ai.api-key` 时自动走本地模拟引擎，用技术词典 + 正则做规则抽取，**输出结构与真实大模型完全一致**，项目开箱即可跑通全流程 |
 | **AI 结果落库** | 每次 JD 解析 / 简历匹配都会写入 `ai_analysis`，生成的面试题会进题库，可回看、可统计 |
@@ -40,6 +41,10 @@
 | **分层清晰** | `controller / service / service.impl / mapper / entity / dto / vo / ai / security / config / common`，DTO 与 VO 分离，实体不外泄 |
 | **多租户数据隔离** | 所有业务查询都带 `user_id`，越权访问统一返回业务错误码，不会拿到别人的数据 |
 | **简历文件导入** | 支持上传 PDF / DOCX / TXT 简历，后端抽文本后用规则引擎推断姓名、电话、邮箱、学历、工作年限、技能标签，回填表单、用户确认后再保存 |
+| **简历专项优化** | 选好目标岗位后，把零散粘贴的项目经历按岗位逐条改写，输出「原文 → 改写 → 理由」对照和可直接使用的完整稿，还能另存为新简历版本而不动原稿 |
+| **从职位直达投递** | 职位列表每行可以直接「投递」，自动带出默认简历，确认后跳看板并高亮新卡片，不用再切页面重选职位 |
+| **简历效果分析** | 看板按简历版本统计投递数 / 面试数 / Offer 数与转化率（7 / 30 / 90 天），直接回答「哪份简历更有效」 |
+| **复盘沉淀进题库** | 面试复盘写满 20 字就能一键交给 AI 拆成面试题，自动归入固定分类，下次面试前直接刷 |
 
 ---
 
@@ -227,13 +232,98 @@ cd backend
 mvn test
 ```
 
-当前 14 个用例全部通过，覆盖投递状态机、AI 返回内容解析、本地模拟引擎三个核心点。
+当前 103 个用例全部通过，覆盖投递状态机、AI 返回内容解析、本地模拟引擎、
+简历结构化解析、注册限流策略等核心点。
+
+### 6. 分享给别人用（内网穿透）
+
+本机就能当服务器用，不需要买云主机。一条命令搞定「打包前端 → 起网关 → 开隧道」：
+
+```powershell
+# Cloudflare Tunnel（推荐：地址固定、免费、自带 HTTPS）
+powershell -ExecutionPolicy Bypass -File start-public.ps1 -Tunnel cloudflare
+
+# 只用 cpolar（老方案，免费版地址会变）
+powershell -ExecutionPolicy Bypass -File start-public.ps1 -Tunnel cpolar
+
+# 不开隧道，仅本机
+powershell -ExecutionPolicy Bypass -File start-public.ps1 -Tunnel none
+```
+
+脚本跑完会直接打印公网地址，发给他人在浏览器打开即可。
+
+先把 cloudflared 装上（只需一次）：
+
+```powershell
+winget install --id Cloudflare.cloudflared
+```
+
+**想要固定地址**（推荐，临时地址每次重启都变）：
+
+1. 准备一个域名，把 NS 托管到 Cloudflare（免费套餐即可）
+2. 一次性配置，指定要用的子域名：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File cloudflare-tunnel.ps1 -Action setup -Domain job.你的域名.com
+```
+
+3. 之后带域名启动，地址就固定了：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File start-public.ps1 -Domain job.你的域名.com
+```
+
+4. 可选：装成 Windows 服务，开机自动拉起隧道（需管理员）
+
+```powershell
+powershell -ExecutionPolicy Bypass -File cloudflare-tunnel.ps1 -Action install-service
+```
+
+其它常用动作：`-Action quick`（免域名临时试跑）、`-Action status`（看隧道状态）、
+`-Action uninstall-service`（卸载服务）。
+
+> 前提是**本机开机 + 后端在跑**。关掉 PowerShell 窗口不影响服务，但关机就断了。
+
+---
+
+## 安全防护
+
+### 注册限流
+
+`RateLimitService` 是内存滑动窗口实现，只用来挡刷号，单机部署够用：
+
+| 维度 | 默认阈值 | 说明 |
+| --- | --- | --- |
+| 注册 · 同 IP 短窗口 | 60 分钟内 3 次 | 挡住批量刷号 |
+| 注册 · 同 IP 累计 | 最多 10 个账号 | 挡住慢速长期注册 |
+
+**登录不做任何限流**：既不限频率也不做失败锁定。用户在自己电脑上反复试密码
+不该被拦在门外，账号安全交给密码本身保证。
+
+超过阈值统一返回 `1007 操作太频繁，请稍后再试`。真实 IP 通过
+`IpUtils` 按 `CF-Connecting-IP → X-Real-IP → X-Forwarded-For` 优先级提取，
+所以挂在 Cloudflare Tunnel 或 Nginx 后面也能拿到访客真实 IP。
+
+阈值都可在 `application.yml` 的 `rate-limit.*` 调整，或直接用环境变量覆盖：
+
+```bash
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_REGISTER_MAX=3          # 注册窗口内次数
+RATE_LIMIT_REGISTER_TOTAL=10       # 注册累计上限
+```
+
+做成多实例集群时需要把计数器换成 Redis 实现，`RateLimitService` 的接口不用动。
+
+### 单点登录
+
+同一个账号不允许在两个浏览器同时在线。JWT 里带 `tokenId`，每次登录都会刷新它，
+旧 token 随即失效——在新设备登录会把老设备踢下线。
 
 ---
 
 ## AI 能力说明
 
-三个 AI 功能都在 `AiService` 里，提示词集中在 `AiPrompts`，要求模型**只返回 JSON**，
+四个 AI 功能都在 `AiService` 里，提示词集中在 `AiPrompts`，要求模型**只返回 JSON**，
 后端用 Jackson 反序列化成 `record`，再落库 —— 而不是拿一段自然语言去正则抠字段。
 
 ### 1. JD 解析
@@ -270,6 +360,11 @@ mvn test
 
 输入「JD + 简历 + 岗位名称」，按分类批量出题，可一键存入题库：
 
+分类固定为 7 个：编程语言与基础 / 框架与中间件 / 数据库与缓存 / 系统设计与性能 / 测试与质量 / 项目与业务 /
+HR与软素质。出题时只允许从这 7 个里选，模型返回的分类名还会在落库前再归一化一次
+（例如 `项目深挖` → `项目与业务`、`MySQL`/`Redis` → `数据库与缓存`），
+避免同一个技术方向被拆成好几个分类。
+
 ```json
 {
   "questions": [
@@ -283,6 +378,63 @@ mvn test
 }
 ```
 
+### 4. 简历专项优化
+
+输入「目标岗位 + 用户粘贴的原始素材（项目经历、工作内容、技能）」，输出逐条改写对照与完整优化稿：
+
+```json
+{
+  "rewrites": [
+    {
+      "section": "项目经历",
+      "original": "1. 负责订单系统的重构，引入 Redis 缓存后接口耗时从 800ms 降到 120ms",
+      "optimized": "主导订单系统的重构，引入 Redis 缓存后接口耗时从 800ms 降到 120ms",
+      "reason": "句首「负责」偏弱，换成结果导向的动词更有说服力"
+    }
+  ],
+  "matchedKeywords": ["Java", "Spring Boot", "MySQL", "Redis"],
+  "missingKeywords": ["Kafka", "分布式系统"],
+  "suggestions": ["补充「Kafka」相关的项目产出，写清你负责的部分和最后的结果"],
+  "optimizedContent": "技能：Spring Boot、MyBatis、Redis、MySQL\n项目经历：\n- 主导订单系统的重构……",
+  "comment": "共改写 2 条，命中岗位关键词 6/13 个。"
+}
+```
+
+几个刻意的设计：
+
+- **不允许编造**：提示词明确禁止模型编造公司、项目和数字，缺数据的地方让它写「【待补充：xxx】」占位，由用户自己填；
+- **改了什么要说得清**：`original` 逐字保留原文，只有 `optimized` 做修改，`reason` 解释改法，前端并排展示成对照卡片；
+- **另存而不是覆盖**：`save=true` 时把优化稿存成一份新简历（标题自动带上岗位名），原简历一个字段都不动；
+- **本地引擎同样守规矩**：没配 API Key 时按「弱动词替换 + 缺量化提示」的规则改写，同样只换表达、不造事实。
+
+### 5. 简历结构化与 A4 排版
+
+「简历管理」里导入的简历只是一段纯文本，而且 PDF 复制出来的顺序是乱的——板块标题经常被挤到
+所属内容的**后面**，没法直接排版。`/ai/structure-resume` 把它识别成固定结构：
+
+```json
+{
+  "basics": { "name": "吴锦炎", "label": "软件测试", "phone": "132…", "email": "…", "city": "广州", "workYears": "应届生", "summary": "…" },
+  "education": [{ "school": "广东科技学院", "major": "软件工程", "degree": "本科", "period": "2022-09 ~ 2026-07", "detail": "专业成绩：GPA 3.66/4" }],
+  "work": [{ "company": "百度", "position": "软件测试实习生", "period": "2025-09 ~ 2026-01", "bullets": ["负责 Web 端与移动端产品的功能测试……"] }],
+  "projects": [{ "name": "智慧云课堂教育管理平台", "role": "软件测试实习生", "period": "…", "summary": "基于 Spring Boot 微服务架构……", "bullets": ["全流程功能测试：……"] }],
+  "skills": ["熟悉UI自动化测试……"],
+  "honors": ["软件设计师中级证书"]
+}
+```
+
+几个刻意的设计：
+
+- **标题排在前面还是后面都能认**：`ResumeStructureParser` 会把两种排布各解析一遍，用板块关键词打分挑更像的那一种（PDF 导入的简历基本都是「标题后置」）；
+- **硬换行合并、编号去掉**：一句话被拆成两行时拼回一条，形如「1.」「2、」「-」的编号前缀一律去掉；
+- **图标字体先清掉**：简历模板里的小图标在 PDF 里是私用区字符（U+E000–U+F8FF），复制出来就是乱码方块，解析前统一剔除，否则一个板块都认不出来；
+- **不编造**：原文没有的字段留空，宁可少字段也不替用户填；
+- **可以在模板上直接改**：点「编辑模板」后 A4 纸上的每个字段都变成输入框，能改文字、加删条目（项目 / 工作 / 技能 / 荣誉都可以），改完点「保存修改」写回 `content_json`，点「放弃修改」丢掉这次改动；编辑时「打印 / 导出 PDF」置灰，避免把输入框带上纸；
+- **可以加自己的板块**：内置板块之外还能「+ 添加自定义板块」（校园经历、证书奖项、个人作品…），标题和条目都能改，写进 `content_json.sections`，下次打开直接复用；
+- **条目可拖拽排序**：工作 / 项目 / 教育 / 技能 / 荣誉 / 自定义板块，以及板块内的每一条，左侧都有 ⠿ 手柄，按住拖动即可换位置，顺序同样存进 `content_json`；
+- **基本信息同步**：保存时把纸上的姓名 / 电话 / 邮箱 / 学历 / 个人简介同步回简历字段，简历列表卡片跟着更新；
+- **导出 PDF 走浏览器原生打印**：`ResumeSheet.vue` 按 A4 尺寸排版，`@media print` 只保留这张纸，用系统打印对话框「另存为 PDF」，文字可选、对 ATS 友好。
+
 ### 接入真实大模型
 
 登录后进入「AI 助手」，点击右上角「配置模型」，即可为当前账号填写厂商、API 模式、
@@ -291,13 +443,34 @@ Ollama 以及自定义 OpenAI 兼容服务。
 
 - **Chat Completions**：调用 `{baseUrl}/chat/completions`；
 - **Responses**：调用 `{baseUrl}/responses`；
+- **Base URL**：只填到版本前缀即可（例如 `https://api.openai.com/v1`）。如果从厂商文档里
+  复制了完整地址（`.../v1/models`、`.../v1/chat/completions`），后端会先剥掉末尾的端点路径，
+  不会再拼出 `/v1/models/models`；
+- **拉取模型**：`GET {baseUrl}/models`，失败信息会带上真实请求地址和底层原因（DNS / 连接超时 /
+  读超时 / TLS），方便判断是地址写错还是网络不通。OpenAI 官方地址在国内需要代理才能直连；
+  后端启动时会自动检测 Windows 系统代理：用户本机开了 Clash / V2Ray 等系统代理即可自动生效，无需手动配置；
+  如自动检测失败，也可通过环境变量 `AI_PROXY_HOST=127.0.0.1` 和 `AI_PROXY_PORT=7897` 强制指定；
+- **思考模式**：`跟随厂商 / 关闭 / 开启`。关闭时 Chat 协议传 `thinking.type=disabled`、
+  Responses 协议传 `reasoning.effort=none`；开启会输出思维链，输出 token 明显变多；
+- **单价**：可选，单位「元 / 百万 tokens」（输入、缓存命中、输出三项）。填了才会在每个结果
+  下方显示预估费用，留空只显示 token 数；
 - API Key 使用 AES-256-GCM 加密后按用户保存，前端只能读取掩码；
 - 生产环境必须设置 `AI_CONFIG_ENCRYPTION_KEY`，且部署后不要随意更换，否则旧密钥无法解密。
+
+每次调用都会解析厂商返回的 `usage`，在结果下方展示输入 / 输出 / 缓存命中 / 思维链 token 数，
+并写入 `ai_analysis`，可在历史记录里回看（DeepSeek 的 `prompt_cache_hit_tokens`、
+`input_tokens_details.cached_tokens` 等字段都会被识别，缺字段不影响调用）。
 
 老数据库需要先执行一次非破坏性迁移：
 
 ```bash
 mysql -uroot -p < sql/migrations/V2__ai_user_config.sql
+mysql -uroot -p < sql/migrations/V3__ai_usage_and_pricing.sql
+mysql -uroot -p < sql/migrations/V4__normalize_question_category.sql
+mysql -uroot -p < sql/migrations/V5__fill_missing_question_category.sql
+mysql -uroot -p < sql/migrations/V6__resume_content_json.sql
+mysql -uroot -p < sql/migrations/V7__user_token_id.sql
+mysql -uroot -p < sql/migrations/V8__job_salary_desc.sql
 ```
 
 任何兼容 OpenAI 协议的服务都能用（OpenAI / DeepSeek / 通义千问兼容模式 / 本地 Ollama）。
@@ -382,23 +555,29 @@ WISHLIST ──> APPLIED ──> WRITTEN_TEST ──> INTERVIEW ──> OFFER
 | 简历 | POST / PUT / DELETE | `/resumes[/{id}]` | 增改删 |
 | 简历 | PUT | `/resumes/{id}/default` | 设为默认简历 |
 | 简历 | POST | `/resumes/import` | 上传 PDF / DOCX / TXT 简历，解析成「新增简历」表单字段（不落库） |
-| 投递 | GET | `/applications` | 分页 + 状态筛选 |
+| 投递 | GET | `/applications` | 分页 + 状态筛选，卡片带下次面试时间与最近匹配分 |
 | 投递 | GET | `/applications/board` | 看板数据（按状态分组） |
 | 投递 | GET | `/applications/statuses` | 状态枚举与中文名 |
 | 投递 | POST / PUT / DELETE | `/applications[/{id}]` | 增改删 |
-| 面试 | GET | `/interviews` | 分页查询 |
+| 面试 | GET | `/interviews` | 分页查询，`upcomingDays=7` 只看未来 7 天（首页红点用） |
 | 面试 | GET | `/interviews/upcoming` | 即将到来的面试 |
-| 面试 | POST / PUT / DELETE | `/interviews[/{id}]` | 增改删 |
+| 面试 | POST / PUT / DELETE | `/interviews[/{id}]` | 增改删；PUT 结果改为「通过」时返回 `awaitingNextStep`，带 `nextStep=OFFER/NEXT_ROUND` 落库用户选择 |
 | 题库 | GET | `/questions` | 分页 + 分类/难度/掌握筛选 |
 | 题库 | GET | `/questions/categories` | 分类列表 |
+| 题库 | GET | `/questions/category-stats` | 每个分类的题数与已掌握数（题库首页分类卡片） |
+| 题库 | GET | `/questions/category-options` | 固定分类列表（AI 出题可选范围） |
 | 题库 | DELETE | `/questions[/{id}]` | 删题 / 清空 |
 | AI | POST | `/ai/analyze-jd` | JD 解析 |
 | AI | POST | `/ai/match-resume` | 简历匹配度 |
 | AI | POST | `/ai/generate-questions` | 生成面试题 |
+| AI | POST | `/ai/extract-questions` | 从面试复盘文本提取题目入题库 |
+| AI | POST | `/ai/optimize-resume` | 简历专项优化（按岗位改写素材，可另存为新简历） |
+| AI | POST | `/ai/structure-resume` | 简历结构化（纯文本识别成 A4 排版用的固定结构，结果写回 resume.content_json） |
 | AI | GET | `/ai/history` | AI 分析历史 |
 | AI | GET | `/ai/config` | 当前 AI 配置（模型 / 是否 mock） |
 | 看板 | GET | `/dashboard` | 首页统计 + 趋势 + 分布 + Top 公司 |
 | 看板 | GET | `/dashboard/home` | 首页聚合数据 |
+| 看板 | GET | `/dashboard/resume-performance` | 简历版本效果分析（投递数 / 面试率 / Offer 率，`days=7/30/90`） |
 
 ---
 
@@ -409,7 +588,8 @@ ai-job-assistant/
 ├── sql/
 │   └── schema.sql                 # 8 张表的建表脚本
 ├── scripts/
-│   └── seed-demo.ps1              # 幂等的演示数据种子脚本
+│   ├── seed-demo.ps1              # 幂等的演示数据种子脚本
+│   └── smoke-prd.ps1              # 按产品需求文档逐项冒烟（跑完自动清理数据）
 ├── docs/
 │   └── screenshots/               # README 用到的截图
 ├── backend/
@@ -456,18 +636,47 @@ ai-job-assistant/
 | `/login` | 登录页 | 登录 / 注册双 Tab |
 | `/dashboard` | 数据看板 | 统计卡 + 30 天趋势 + 状态分布 + Top 公司 + 近期面试 |
 | `/companies` | 公司管理 | 公司列表与状态维护 |
-| `/jobs` | 职位管理 | 职位列表，含「AI 解析」侧边抽屉 |
+| `/jobs` | 职位管理 | 职位列表，每行可直接「投递」（带出默认简历，成功后跳看板高亮新卡片），含「AI 解析」侧边抽屉 |
 | `/resumes` | 简历管理 | 卡片式多版本简历，支持导入 PDF / DOCX / TXT 解析后回填 |
 | `/applications` | 投递记录 | 表格 + 状态流转 |
-| `/board` | 求职看板 | 7 列看板，卡片可直接改状态 |
-| `/interviews` | 面试管理 | 面试安排与复盘 |
-| `/questions` | 面试题库 | 按分类 / 难度筛选，标记已掌握 |
-| `/ai` | AI 助手 | JD 解析 / 简历匹配 / AI 出题 三个 Tab |
+| `/board` | 求职看板 | 7 列看板，卡片显示距今投递天数 / 下次面试时间 / AI 匹配分，可直接改状态 |
+| `/interviews` | 面试管理 | 面试安排与复盘，结果改「通过」会问下一步，复盘可一键提取到题库 |
+| `/questions` | 面试题库 | 首页按分类平铺成卡片，点进分类才是题目列表，可标记已掌握 |
+| `/ai` | AI 助手 | JD 解析 / 简历匹配 / 简历优化 / 简历排版 / AI 出题 五个 Tab |
+| `/dashboard` | 数据看板 | 统计卡 + 趋势 + 分布 + 7 天内面试红点 + 简历效果分析报表 |
 | `/profile` | 个人中心 | 资料与密码修改 |
 
 ---
 
 ## 测试
+
+### DeepSeek 只读辅助工具
+
+项目内置了 `scripts/ask-deepseek.ps1`，用于把搜索、调用链整理、日志归纳等简单杂活交给
+CC Switch 的 Codex 供应商，核心判断和代码修改仍由 GPT 完成。默认读取
+`Codex → 公司01`，不会切换 CC Switch 当前供应商：工具会创建一次性的独立 `CODEX_HOME`，
+以 `read-only` 沙箱运行 `codex exec --ephemeral`，结束后立即清理临时认证文件。
+
+前置条件：本机已安装 Python 3、Codex CLI，并已在 CC Switch 的 Codex 标签下保存“公司01”。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/ask-deepseek.ps1 `
+  -Task "只读分析登录超时相关调用链，返回文件路径、行号和关键结论"
+```
+
+结果默认写入 `.ai-handoff/deepseek-result.md`，最多保留 1500 个字符。可以调整供应商、
+长度和输出位置：
+
+```powershell
+./scripts/ask-deepseek.ps1 `
+  -Task "归纳最近一次测试失败的共同原因" `
+  -Provider "公司01" `
+  -MaxChars 1000 `
+  -Output ".ai-handoff/test-failures.md"
+```
+
+工具只在运行时从 CC Switch 数据库读取供应商配置。API Key 不会写入项目、交接结果或命令行；
+Codex 执行失败时，错误输出中的供应商密钥也会被替换为 `[REDACTED]`。
 
 单元测试集中在「容易出错、又不需要启动容器」的地方，跑起来很快（约 7 秒）：
 
@@ -475,12 +684,32 @@ ai-job-assistant/
 | --- | --- |
 | `ApplicationStatusTest` | 状态合法性校验、中文标签、看板列顺序、WISHLIST 不计入投递数 |
 | `AiClientTest` | 大模型返回内容解析：纯 JSON、```json 代码块、前后带说明文字、无 JSON 时报错 |
-| `MockAiEngineTest` | JD 技能/经验/学历抽取、长词优先（JavaScript 不误判成 Java）、匹配分、按分类出题 |
+| `MockAiEngineTest` | JD 技能/经验/学历抽取、长词优先（JavaScript 不误判成 Java）、匹配分、按分类出题、简历按岗位逐条改写（不编数据、缺量化给占位） |
+| `QuestionCategoryTest` | 题库分类归一化：同义分类合并、关键词冲突优先级、幂等、排序 |
+| `QuestionServiceImplTest` | 题库分类统计按固定顺序返回，未知分类排在最后，空题库不报错 |
 | `ResumeFieldExtractorTest` | 中文简历字段抽取：姓名 / 电话 / 邮箱 / 学历 / 工作年限 / 求职意向 / 技能边界 / 空文本兜底 |
+| `ResumeStructureParserTest` | 简历结构化：标题排在正文后面的 PDF 排版、硬换行合并、编号去掉、缺字段不编造、标题与正文挤在一行、图标字体私用区字符清理，含真实 PDF 简历回归（`src/test/resources/resume-sample-pdf.txt`） |
 | `ResumeImportServiceImplTest` | 简历文件导入：DOCX 解析、GBK txt 兜底、`.doc` 明确提示、扫描件无文字报错、10MB 上限 |
+| `GlobalExceptionHandlerTest` | 访问不存在的路径返回 404「接口不存在」，不会被 500 兜底吞掉 |
 
 ```bash
 cd backend && mvn test
+```
+
+### 冒烟测试
+
+接口级的冒烟脚本，按产品需求文档逐项验证（投递 → 面试流转 → 报表 → 复盘入题库），
+跑之前确保后端起在 `8088`：
+
+```bash
+pwsh -ExecutionPolicy Bypass -File scripts/smoke-prd.ps1
+```
+
+脚本用演示账号跑真接口，造出来的职位 / 投递 / 面试 / 题目在结束时会被清理掉，
+不会污染演示数据。前端工具函数另有一组 `node:test` 单测：
+
+```bash
+cd frontend && node --test tests/datetime.test.mjs
 ```
 
 > 这些用例不依赖 MySQL 和 Spring 容器，所以 CI 里不需要额外起服务。
@@ -499,7 +728,13 @@ cd backend && mvn test
 `JacksonConfig` 里显式注册了 JSR-310 序列化器，如果你自己改了这块要留意。
 
 **Q：不配 AI key 能用吗？**
-能。会自动走本地模拟引擎，三个 AI 功能都能出结果，只是内容质量不如真实模型。
+能。会自动走本地模拟引擎，四个 AI 功能都能出结果，只是内容质量不如真实模型。
+
+**Q：刚加的后端接口，点了报「系统开小差了」，日志里是 `NoResourceFoundException`？**
+说明这个路径在**正在运行的进程里根本不存在**，通常是后端还跑着旧版本：前端 `npm run dev`
+会热更新，后端不会。改完后端代码要「停掉后端 → `mvn clean package -DskipTests` → 重新启动」
+才会生效（jar 被运行中的进程占用时 `clean` 会失败，所以必须先停）。
+现在这类请求会明确回 `404 接口不存在：/api/xxx`，不再伪装成 500。
 
 **Q：导入简历提示格式不支持，或者读不出文字？**
 只支持 PDF / DOCX / TXT（含 `.md`），且必须是文字版：扫描件（图片型 PDF）、加密 PDF
@@ -521,6 +756,7 @@ cd backend && mvn test
 - [ ] **Redis 缓存**：缓存看板统计、题库分类，加分布式锁防止 AI 接口被重复触发
 - [ ] **定时任务**：面试前一天自动提醒（`@Scheduled` 或延迟队列）
 - [x] **简历文件导入**：上传 PDF / DOCX / TXT 自动抽取文本并推断字段，省掉手动粘贴
+- [x] **简历专项优化**：按目标岗位逐条改写项目经历，输出对照稿并可另存为新简历版本
 - [ ] **AI 模拟面试**：多轮对话式追问，结合历史答题情况动态调整难度
 - [ ] **求职周报**：每周汇总投递量、面试转化率变化，邮件推送
 - [ ] **岗位关键词统计**：把 JD 解析出的技能词做聚合，看出市场最缺什么

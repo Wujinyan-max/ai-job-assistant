@@ -39,6 +39,21 @@ public record ResumeImportVO(
         String summary,
 
         @Schema(description = "完整简历正文，供 AI 匹配使用")
-        String content
+        String content,
+
+        @Schema(description = "从 PDF 里提取到的版式配色，用于原版复刻；非 PDF 或识别失败时为 null")
+        ResumeStyleVO style,
+
+        @Schema(description = "从 PDF 里提取到的头像（data URL），没有头像时为 null")
+        String avatar,
+
+        @Schema(description = "识别出的结构化内容，前端保存时写进 contentJson；识别失败时为 null")
+        ResumeStructureVO structure,
+
+        @Schema(description = "识别方式：VISION 视觉识别 / TEXT 文本识别 / LOCAL 本地规则解析 / NONE 未识别")
+        String source,
+
+        @Schema(description = "需要提示用户的话，没有时为 null")
+        String notice
 ) {
 }

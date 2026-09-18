@@ -9,16 +9,16 @@
               <el-input :model-value="userStore.user?.username" disabled />
             </el-form-item>
             <el-form-item label="昵称">
-              <el-input v-model="form.nickname" />
+              <el-input v-model="form.nickname" placeholder="例如：小明" />
             </el-form-item>
             <el-form-item label="邮箱">
-              <el-input v-model="form.email" />
+              <el-input v-model="form.email" placeholder="例如：xiaoming@example.com" />
             </el-form-item>
             <el-form-item label="手机号">
-              <el-input v-model="form.phone" />
+              <el-input v-model="form.phone" placeholder="例如：13800000000" />
             </el-form-item>
             <el-form-item label="学历">
-              <el-select v-model="form.education" clearable style="width: 100%">
+              <el-select v-model="form.education" clearable placeholder="选择学历" style="width: 100%">
                 <el-option v-for="item in ['大专', '本科', '硕士', '博士']" :key="item" :label="item" :value="item" />
               </el-select>
             </el-form-item>
@@ -35,13 +35,13 @@
           <div class="page-title" style="margin-bottom: 16px">修改密码</div>
           <el-form ref="pwdRef" :model="pwd" :rules="pwdRules" label-width="88px">
             <el-form-item label="原密码" prop="oldPassword">
-              <el-input v-model="pwd.oldPassword" type="password" show-password />
+              <el-input v-model="pwd.oldPassword" type="password" show-password placeholder="请输入当前密码" />
             </el-form-item>
             <el-form-item label="新密码" prop="newPassword">
-              <el-input v-model="pwd.newPassword" type="password" show-password />
+              <el-input v-model="pwd.newPassword" type="password" show-password placeholder="至少 6 位" />
             </el-form-item>
             <el-form-item label="确认密码" prop="confirmPassword">
-              <el-input v-model="pwd.confirmPassword" type="password" show-password />
+              <el-input v-model="pwd.confirmPassword" type="password" show-password placeholder="再次输入新密码" />
             </el-form-item>
             <el-button type="primary" :loading="changing" @click="onChangePassword">修改密码</el-button>
           </el-form>

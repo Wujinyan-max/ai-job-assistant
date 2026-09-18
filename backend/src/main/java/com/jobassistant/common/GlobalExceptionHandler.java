@@ -11,6 +11,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -76,6 +77,18 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public Result<Void> handleAccessDenied(AccessDeniedException e) {
         return Result.error(ErrorCode.FORBIDDEN);
+    }
+
+    /**
+     * 路径上没有对应的接口。Spring MVC 找不到处理器时会抛 NoResourceFoundException，
+     * 一旦落到下面的 Exception 兜底，就会被报成 500「系统开小差了」，
+     * 把「接口不存在」（例如后端还跑着旧版本）误导成服务端故障。
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Result<Void> handleNoResourceFound(NoResourceFoundException e, HttpServletRequest request) {
+        log.warn("接口不存在 [{}] {}", request.getMethod(), request.getRequestURI());
+        return Result.error(ErrorCode.NOT_FOUND, "接口不存在：" + request.getRequestURI());
     }
 
     @ExceptionHandler(Exception.class)

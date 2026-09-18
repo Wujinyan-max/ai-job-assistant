@@ -42,6 +42,10 @@ public class User {
     /** 1-正常 0-禁用 */
     private Integer status;
 
+    /** 当前有效登录态 ID，每次登录刷新，实现单点登录 */
+    @JsonIgnore
+    private String tokenId;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

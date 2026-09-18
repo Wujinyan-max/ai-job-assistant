@@ -1,7 +1,8 @@
 <template>
   <div class="page">
     <div class="page-header">
-      <div><h2 class="page-title">职位管理</h2><div class="page-subtitle">集中管理岗位信息，并使用 AI 快速解析 JD</div></div>
+      <div><div class="page-kicker">Job Positions</div>
+        <h2 class="page-title">职位管理</h2><div class="page-subtitle">集中管理岗位信息，并使用 AI 快速解析 JD</div></div>
     </div>
     <div class="toolbar">
       <el-input v-model="query.keyword" placeholder="搜索职位名称 / 地点" clearable style="width: 220px"
@@ -26,7 +27,8 @@
         </el-table-column>
         <el-table-column label="薪资" width="120">
           <template #default="{ row }">
-            <span v-if="row.salaryMin || row.salaryMax">{{ row.salaryMin || '?' }}-{{ row.salaryMax || '?' }}K</span>
+            <span v-if="row.salaryDesc">{{ row.salaryDesc }}</span>
+            <span v-else-if="row.salaryMin || row.salaryMax">{{ row.salaryMin || '?' }}-{{ row.salaryMax || '?' }}K</span>
             <span v-else class="muted">面议</span>
           </template>
         </el-table-column>
@@ -38,12 +40,15 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="230" fixed="right">
+        <el-table-column label="操作" width="292" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openAi(row)">AI 解析</el-button>
-            <el-button link type="primary" @click="$router.push('/ai')">简历匹配</el-button>
-            <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
-            <el-button link type="danger" @click="onDelete(row)">删除</el-button>
+            <div class="action-bar">
+              <el-button link type="primary" :disabled="!canApply" @click="openApply(row)">投递</el-button>
+              <el-button link type="primary" @click="openAi(row)">AI 解析</el-button>
+              <el-button link type="primary" @click="$router.push('/ai')">简历匹配</el-button>
+              <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
+              <el-button link type="danger" @click="onDelete(row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -56,7 +61,7 @@
     <el-dialog v-model="dialog.visible" :title="dialog.id ? '编辑职位' : '新增职位'" width="700px" top="6vh">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="88px">
         <el-form-item label="关联公司">
-          <el-select v-model="form.companyId" placeholder="选择公司" clearable filterable style="width: 100%">
+          <el-select v-model="form.companyId" placeholder="选择所属公司（可留空）" clearable filterable style="width: 100%">
             <el-option v-for="item in companies" :key="item.id" :label="item.name" :value="item.id" />
           </el-select>
         </el-form-item>
@@ -65,11 +70,17 @@
         </el-form-item>
         <el-form-item label="薪资范围">
           <div style="display: flex; gap: 8px; align-items: center">
-            <el-input-number v-model="form.salaryMin" :min="0" :max="500" controls-position="right" style="width: 130px" />
+            <el-input-number v-model="form.salaryMin" :min="0" :max="500" controls-position="right"
+                             placeholder="最低" style="width: 130px" />
             <span class="muted">—</span>
-            <el-input-number v-model="form.salaryMax" :min="0" :max="500" controls-position="right" style="width: 130px" />
+            <el-input-number v-model="form.salaryMax" :min="0" :max="500" controls-position="right"
+                             placeholder="最高" style="width: 130px" />
             <span class="muted">K / 月</span>
           </div>
+        </el-form-item>
+        <el-form-item label="薪资描述">
+          <el-input v-model="form.salaryDesc" maxlength="50" show-word-limit
+                    placeholder="选填，例如：15-30K·14薪；填了列表优先显示它" />
         </el-form-item>
         <el-form-item label="工作地点">
           <el-input v-model="form.location" placeholder="例如：北京·海淀区" />
@@ -91,6 +102,39 @@
       <template #footer>
         <el-button @click="dialog.visible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="onSubmit">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="apply.visible" title="一键投递" width="480px">
+      <el-alert v-if="!apply.resumeId" type="warning" :closable="false" show-icon style="margin-bottom: 14px"
+                title="未设置默认简历，请手动选择" />
+      <el-form label-width="88px">
+        <el-form-item label="职位">
+          <el-input :model-value="apply.jobName" disabled />
+        </el-form-item>
+        <el-form-item label="使用简历">
+          <el-select v-model="apply.resumeId" placeholder="选择本次投递用的简历" clearable style="width: 100%">
+            <el-option v-for="item in resumes" :key="item.id" :label="item.title" :value="item.id" />
+          </el-select>
+          <div v-if="!resumes.length" class="muted" style="font-size: 12px; line-height: 1.6">
+            还没有简历，先去
+            <el-link type="primary" :underline="false" @click="$router.push('/resumes')">简历管理</el-link>
+            创建一份再投递
+          </div>
+        </el-form-item>
+        <el-form-item label="投递渠道">
+          <el-input v-model="apply.source" maxlength="50" placeholder="选填，例如：Boss 直聘" />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="apply.remark" type="textarea" :rows="2" maxlength="500"
+                    placeholder="选填，例如：内推码、投递时看到的重点要求" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="apply.visible = false">取消</el-button>
+        <el-button type="primary" :disabled="!apply.resumeId" :loading="apply.saving" @click="submitApply">
+          确认投递
+        </el-button>
       </template>
     </el-dialog>
 
@@ -117,6 +161,7 @@
 
           <div class="section-title">AI 总结</div>
           <el-alert :title="ai.result.summary" type="info" :closable="false" show-icon />
+          <AiUsageBar :usage="ai.usage" :mocked="ai.mocked" />
         </template>
       </div>
     </el-drawer>
@@ -124,23 +169,32 @@
 </template>
 
 <script setup>
-import { onActivated, onMounted, reactive, ref } from 'vue'
+import { computed, onActivated, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
-import { aiApi, companyApi, jobApi } from '@/api'
+import { aiApi, applicationApi, companyApi, jobApi, resumeApi } from '@/api'
+import AiUsageBar from '@/components/AiUsageBar.vue'
+import { ensureLocalAiNotice } from '@/utils/aiLocalNotice'
+
+const router = useRouter()
 
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref([])
 const total = ref(0)
 const companies = ref([])
+const resumes = ref([])
 const formRef = ref()
 
 const query = reactive({ pageNum: 1, pageSize: 10, keyword: '', companyId: null, status: '' })
 const dialog = reactive({ visible: false, id: null })
-const ai = reactive({ visible: false, loading: false, result: null })
+const ai = reactive({ visible: false, loading: false, result: null, usage: null, mocked: false })
+const apply = reactive({
+  visible: false, saving: false, jobId: null, jobName: '', resumeId: null, source: '', remark: ''
+})
 const form = reactive({
-  companyId: null, jobName: '', jobDescription: '', salaryMin: null, salaryMax: null,
+  companyId: null, jobName: '', jobDescription: '', salaryMin: null, salaryMax: null, salaryDesc: '',
   location: '', jobUrl: '', status: 'OPEN'
 })
 
@@ -164,6 +218,43 @@ async function loadCompanies() {
   companies.value = await companyApi.all()
 }
 
+/** 有简历才允许投递，一份都没有时按钮直接置灰 */
+const canApply = computed(() => resumes.value.length > 0)
+
+async function loadResumes() {
+  resumes.value = await resumeApi.all()
+}
+
+function openApply(row) {
+  apply.jobId = row.id
+  apply.jobName = row.jobName
+  // 默认带出默认简历，用户改一下就能投，省掉「切页面 + 重新选职位」的步骤
+  apply.resumeId = resumes.value.find((item) => item.isDefault === 1)?.id ?? null
+  apply.source = ''
+  apply.remark = ''
+  apply.visible = true
+}
+
+async function submitApply() {
+  if (!apply.resumeId) return
+  apply.saving = true
+  try {
+    const id = await applicationApi.create({
+      jobId: apply.jobId,
+      resumeId: apply.resumeId,
+      applicationStatus: 'APPLIED',
+      source: apply.source,
+      remark: apply.remark
+    })
+    ElMessage.success('投递成功，已跳到看板')
+    apply.visible = false
+    // 跳看板并带上刚创建的 id，看板会把新卡片高亮出来
+    router.push({ path: '/board', query: { highlight: id } })
+  } finally {
+    apply.saving = false
+  }
+}
+
 function openDialog(row) {
   dialog.id = row?.id ?? null
   dialog.visible = true
@@ -175,6 +266,7 @@ function openDialog(row) {
     jobDescription: row?.jobDescription || '',
     salaryMin: row?.salaryMin ?? null,
     salaryMax: row?.salaryMax ?? null,
+    salaryDesc: row?.salaryDesc || '',
     location: row?.location || '',
     jobUrl: row?.jobUrl || '',
     status: row?.status || 'OPEN'
@@ -206,11 +298,19 @@ async function onDelete(row) {
 }
 
 async function openAi(row) {
+  const proceed = await ensureLocalAiNotice({
+    onConfigure: () => router.push({ path: '/ai', query: { configure: '1' } })
+  })
+  if (!proceed) return
   ai.visible = true
   ai.loading = true
   ai.result = null
+  ai.usage = null
   try {
-    ai.result = await aiApi.analyzeJd({ jobId: row.id })
+    const result = await aiApi.analyzeJd({ jobId: row.id })
+    ai.result = result.data
+    ai.usage = result.usage
+    ai.mocked = result.mocked
   } finally {
     ai.loading = false
   }
@@ -219,6 +319,7 @@ async function openAi(row) {
 onMounted(() => {
   load()
   loadCompanies()
+  loadResumes()
 })
 
 // 页面被 keep-alive 缓存后，再次进入不会触发 onMounted，这里重新拉一次，
@@ -226,6 +327,7 @@ onMounted(() => {
 onActivated(() => {
   load()
   loadCompanies()
+  loadResumes()
 })
 </script>
 
@@ -244,7 +346,7 @@ onActivated(() => {
   margin: 0;
   padding-left: 18px;
   line-height: 1.9;
-  color: #4b5568;
+  color: var(--text-regular);
   font-size: 13px;
 }
 </style>

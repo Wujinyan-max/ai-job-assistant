@@ -1,0 +1,25 @@
+# 多阶段构建：先编译，再打包成最小运行镜像
+FROM maven:3.9-eclipse-temurin-17 AS build
+WORKDIR /app
+COPY pom.xml .
+# 利用 Docker 层缓存：依赖没变就不重新下载
+RUN mvn dependency:go-offline -q
+COPY src ./src
+RUN mvn package -DskipTests -q
+
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+
+# 非 root 用户运行
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+COPY --from=build /app/target/job-assistant-1.0.0.jar app.jar
+
+EXPOSE 8088
+
+ENTRYPOINT ["java", \
+  "-Xms256m", "-Xmx512m", \
+  "-XX:+UseContainerSupport", \
+  "-Djava.security.egd=file:/dev/./urandom", \
+  "-jar", "app.jar"]

@@ -17,6 +17,11 @@ public record JobDTO(
 
         Integer salaryMin,
         Integer salaryMax,
+
+        @Schema(description = "薪资描述自由文本，如「15-30K·14薪」，填写后列表优先展示它")
+        @Size(max = 50, message = "薪资描述最长 50 个字符")
+        String salaryDesc,
+
         String location,
         String jobUrl,
 

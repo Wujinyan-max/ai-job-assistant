@@ -16,6 +16,7 @@ import com.jobassistant.security.SecurityUtils;
 import com.jobassistant.service.ApplicationService;
 import com.jobassistant.service.InterviewService;
 import com.jobassistant.vo.InterviewVO;
+import com.jobassistant.vo.InterviewUpdateVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,9 +43,16 @@ public class InterviewServiceImpl implements InterviewService {
     private final ApplicationService applicationService;
 
     @Override
-    public PageResult<InterviewVO> page(int pageNum, int pageSize, String result, String keyword) {
+    public PageResult<InterviewVO> page(int pageNum, int pageSize, String result, String keyword,
+                                        Integer upcomingDays) {
+        // 传了天数就只查这个窗口内的面试：首页「7 天内面试」红点点进来时用，
+        // 放在 SQL 里过滤而不是前端筛，翻页才不会漏数据
+        boolean upcomingOnly = upcomingDays != null && upcomingDays > 0;
+        LocalDateTime from = upcomingOnly ? LocalDateTime.now() : null;
+        LocalDateTime to = upcomingOnly ? from.plusDays(upcomingDays) : null;
         IPage<InterviewVO> page = interviewMapper.selectInterviewPage(
-                new Page<>(pageNum, pageSize), SecurityUtils.getUserId(), result, keyword);
+                new Page<>(pageNum, pageSize), SecurityUtils.getUserId(), result, keyword,
+                upcomingOnly, from, to);
         return PageResult.of(page);
     }
 
@@ -84,8 +92,12 @@ public class InterviewServiceImpl implements InterviewService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void update(Long id, InterviewDTO dto) {
+    public InterviewUpdateVO update(Long id, InterviewDTO dto) {
         Interview interview = requireOwned(id);
+        // 先把改动前的状态记下来：只有「从非 PASS 改成 PASS」才需要弹窗问下一步，
+        // 已经是 PASS 的再次保存（比如只是补了复盘内容）不该反复打扰用户
+        String previousResult = interview.getResult();
+
         if (!interview.getApplicationId().equals(dto.applicationId())) {
             applicationService.requireOwned(dto.applicationId());
             interview.setApplicationId(dto.applicationId());
@@ -107,10 +119,64 @@ public class InterviewServiceImpl implements InterviewService {
         interview.setReview(dto.review());
         interviewMapper.updateById(interview);
 
-        // 某轮通过/失败后，同步更新投递状态
-        if ("FAIL".equals(interview.getResult())) {
-            applicationService.updateStatus(interview.getApplicationId(), ApplicationStatus.REJECTED);
+        return applyResultFlow(interview, previousResult, dto.nextStep());
+    }
+
+    /**
+     * 面试结果落库后同步推进投递状态。
+     * <p>失败直接置为「已拒绝」；通过则交给用户选下一步——「已拿 Offer」置为 OFFER，
+     * 「进入下一轮」保持面试中并自动建一条下一轮草稿，不选则不改状态。</p>
+     */
+    private InterviewUpdateVO applyResultFlow(Interview interview, String previousResult, String nextStep) {
+        Long applicationId = interview.getApplicationId();
+        String result = interview.getResult();
+
+        if ("FAIL".equals(result)) {
+            applicationService.updateStatus(applicationId, ApplicationStatus.REJECTED);
+            return flow(applicationId, ApplicationStatus.REJECTED, null, null, false);
         }
+        if (!"PASS".equals(result)) {
+            // 待定：不动投递状态，返回当前状态供前端刷新
+            return flow(applicationId, currentStatus(applicationId), null, null, false);
+        }
+
+        boolean justPassed = !"PASS".equals(previousResult);
+        String step = StringUtils.hasText(nextStep) ? nextStep.trim().toUpperCase() : "";
+
+        if ("OFFER".equals(step)) {
+            applicationService.updateStatus(applicationId, ApplicationStatus.OFFER);
+            return flow(applicationId, ApplicationStatus.OFFER, null, null, false);
+        }
+        if ("NEXT_ROUND".equals(step)) {
+            // 保持面试中，并建一条下一轮草稿，用户只需要补时间
+            applicationService.updateStatus(applicationId, ApplicationStatus.INTERVIEW);
+            int roundNo = nextRoundNo(applicationId);
+            Interview draft = new Interview();
+            draft.setUserId(SecurityUtils.getUserId());
+            draft.setApplicationId(applicationId);
+            draft.setRoundNo(roundNo);
+            draft.setRoundName("第 " + roundNo + " 轮");
+            draft.setInterviewType(interview.getInterviewType());
+            draft.setResult("PENDING");
+            interviewMapper.insert(draft);
+            return flow(applicationId, ApplicationStatus.INTERVIEW, draft.getId(), roundNo, false);
+        }
+
+        // 没有选下一步：通过本身说明已经推进到面试阶段了
+        if (justPassed && !ApplicationStatus.INTERVIEW.equals(currentStatus(applicationId))) {
+            applicationService.updateStatus(applicationId, ApplicationStatus.INTERVIEW);
+        }
+        return flow(applicationId, currentStatus(applicationId), null, null, justPassed);
+    }
+
+    private InterviewUpdateVO flow(Long applicationId, String status, Long nextInterviewId,
+                                   Integer nextRoundNo, boolean awaiting) {
+        return new InterviewUpdateVO(applicationId, status, ApplicationStatus.label(status),
+                nextInterviewId, nextRoundNo, awaiting);
+    }
+
+    private String currentStatus(Long applicationId) {
+        return applicationService.requireOwned(applicationId).getApplicationStatus();
     }
 
     @Override

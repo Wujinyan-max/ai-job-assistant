@@ -3,6 +3,7 @@ package com.jobassistant.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.jobassistant.ai.QuestionCategory;
 import com.jobassistant.common.BusinessException;
 import com.jobassistant.common.ErrorCode;
 import com.jobassistant.common.PageResult;
@@ -10,11 +11,13 @@ import com.jobassistant.entity.InterviewQuestion;
 import com.jobassistant.mapper.InterviewQuestionMapper;
 import com.jobassistant.security.SecurityUtils;
 import com.jobassistant.service.QuestionService;
+import com.jobassistant.vo.QuestionCategoryStatsVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -36,7 +39,23 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Override
     public List<String> categories() {
-        return questionMapper.selectCategories(SecurityUtils.getUserId());
+        // 按固定分类顺序排序，让筛选下拉框的顺序稳定下来
+        return questionMapper.selectCategories(SecurityUtils.getUserId()).stream()
+                .sorted(QuestionCategory.canonicalOrder())
+                .toList();
+    }
+
+    @Override
+    public List<QuestionCategoryStatsVO> categoryStats() {
+        // 同样按固定分类顺序排序，分类卡片的顺序才不会每次打开都在变
+        return questionMapper.selectCategoryStats(SecurityUtils.getUserId()).stream()
+                .sorted(Comparator.comparing(QuestionCategoryStatsVO::getCategory, QuestionCategory.canonicalOrder()))
+                .toList();
+    }
+
+    @Override
+    public List<String> categoryOptions() {
+        return QuestionCategory.labels();
     }
 
     @Override

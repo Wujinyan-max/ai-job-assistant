@@ -25,6 +25,13 @@ public class ApplicationVO {
     private String source;
     private String remark;
     private Integer interviewCount;
+
+    /** 最近一场还没到时间的面试，没有则 null（看板卡片用来提示「明天 14:00 面试」） */
+    private LocalDateTime nextInterviewTime;
+
+    /** 该职位最近一次 AI 简历匹配分，没有匹配记录时 null */
+    private Integer matchScore;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -21,6 +21,12 @@ public class AiUserConfig {
     @JsonIgnore
     private String apiKeyEncrypted;
     private String model;
+    /** 思考模式：DEFAULT / OFF / ON，见 {@link com.jobassistant.ai.AiThinkingMode} */
+    private String thinkingMode;
+    /** 单价（元/百万 tokens），用于估算费用，null 表示不估算 */
+    private Double inputPrice;
+    private Double cachePrice;
+    private Double outputPrice;
     private Integer enabled;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

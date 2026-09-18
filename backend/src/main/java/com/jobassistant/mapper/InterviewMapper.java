@@ -43,13 +43,21 @@ public interface InterviewMapper extends BaseMapper<Interview> {
                      OR c.name LIKE CONCAT('%', #{keyword}, '%')
                      OR i.interviewer LIKE CONCAT('%', #{keyword}, '%'))
             </if>
+            <if test="upcomingOnly">
+                AND i.interview_time IS NOT NULL
+                AND i.interview_time >= #{upcomingFrom}
+                AND i.interview_time &lt; #{upcomingTo}
+            </if>
             ORDER BY i.interview_time IS NULL, i.interview_time ASC, i.id DESC
             </script>
             """)
     IPage<InterviewVO> selectInterviewPage(IPage<InterviewVO> page,
                                            @Param("userId") Long userId,
                                            @Param("result") String result,
-                                           @Param("keyword") String keyword);
+                                           @Param("keyword") String keyword,
+                                           @Param("upcomingOnly") boolean upcomingOnly,
+                                           @Param("upcomingFrom") LocalDateTime upcomingFrom,
+                                           @Param("upcomingTo") LocalDateTime upcomingTo);
 
     /** 即将到来的面试（用于首页提醒） */
     @Select("""

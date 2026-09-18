@@ -5,6 +5,7 @@ import com.jobassistant.service.DashboardService;
 import com.jobassistant.service.InterviewService;
 import com.jobassistant.vo.DashboardVO;
 import com.jobassistant.vo.InterviewVO;
+import com.jobassistant.vo.ResumePerformanceVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -41,5 +42,11 @@ public class DashboardController {
         List<InterviewVO> upcoming = interviewService.upcoming(upcomingDays);
         data.put("upcomingInterviews", upcoming);
         return Result.success(data);
+    }
+
+    @Operation(summary = "简历版本效果分析", description = "按简历版本统计投递数、面试率、Offer 率")
+    @GetMapping("/resume-performance")
+    public Result<List<ResumePerformanceVO>> resumePerformance(@RequestParam(defaultValue = "30") int days) {
+        return Result.success(dashboardService.resumePerformance(days));
     }
 }

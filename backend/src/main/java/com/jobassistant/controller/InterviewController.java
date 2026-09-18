@@ -5,6 +5,7 @@ import com.jobassistant.common.Result;
 import com.jobassistant.dto.InterviewDTO;
 import com.jobassistant.service.InterviewService;
 import com.jobassistant.vo.InterviewVO;
+import com.jobassistant.vo.InterviewUpdateVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -34,8 +35,9 @@ public class InterviewController {
     public Result<PageResult<InterviewVO>> page(@RequestParam(defaultValue = "1") int pageNum,
                                                 @RequestParam(defaultValue = "10") int pageSize,
                                                 @RequestParam(required = false) String result,
-                                                @RequestParam(required = false) String keyword) {
-        return Result.success(interviewService.page(pageNum, pageSize, result, keyword));
+                                                @RequestParam(required = false) String keyword,
+                                                @RequestParam(required = false) Integer upcomingDays) {
+        return Result.success(interviewService.page(pageNum, pageSize, result, keyword, upcomingDays));
     }
 
     @Operation(summary = "即将到来的面试", description = "默认查未来 7 天")
@@ -50,11 +52,12 @@ public class InterviewController {
         return Result.success(interviewService.create(dto));
     }
 
-    @Operation(summary = "修改面试")
+    @Operation(summary = "修改面试",
+            description = "结果改为「通过」时返回 awaitingNextStep=true，前端应询问下一步；"
+                    + "nextStep 传 OFFER / NEXT_ROUND 来落库用户的选择")
     @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody InterviewDTO dto) {
-        interviewService.update(id, dto);
-        return Result.success();
+    public Result<InterviewUpdateVO> update(@PathVariable Long id, @Valid @RequestBody InterviewDTO dto) {
+        return Result.success(interviewService.update(id, dto));
     }
 
     @Operation(summary = "删除面试")

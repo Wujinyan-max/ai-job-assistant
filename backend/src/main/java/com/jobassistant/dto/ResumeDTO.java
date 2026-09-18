@@ -27,6 +27,15 @@ public record ResumeDTO(
 
         String content,
 
-        Boolean isDefault
+        Boolean isDefault,
+
+        @Schema(description = "结构化简历 JSON（排版导出用），结构见 ResumeStructureVO")
+        String contentJson,
+
+        @Schema(description = "头像 data URL；传空字符串表示清空头像")
+        String avatar,
+
+        @Schema(description = "提取到的版式配色 JSON，结构见 ResumeStyleVO")
+        String styleJson
 ) {
 }

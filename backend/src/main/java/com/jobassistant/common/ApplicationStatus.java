@@ -23,7 +23,7 @@ public final class ApplicationStatus {
     public static final String OFFER = "OFFER";
     /** 被拒绝 */
     public static final String REJECTED = "REJECTED";
-    /** 主动关闭 */
+    /** 主动放弃（不打算继续跟进这条投递） */
     public static final String CLOSED = "CLOSED";
 
     /** 全部合法状态，顺序即为看板列顺序 */
@@ -49,7 +49,7 @@ public final class ApplicationStatus {
             case INTERVIEW -> "面试";
             case OFFER -> "Offer";
             case REJECTED -> "已拒绝";
-            case CLOSED -> "已关闭";
+            case CLOSED -> "已放弃";
             default -> "未知";
         };
     }

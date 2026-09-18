@@ -24,6 +24,7 @@ public enum ErrorCode {
     OLD_PASSWORD_ERROR(1004, "原密码不正确"),
     USER_DISABLED(1005, "账号已被禁用，请联系管理员"),
     NOT_LOGIN(1006, "请先登录"),
+    TOO_MANY_REQUESTS(1007, "操作太频繁，请稍后再试"),
 
     RESUME_NOT_FOUND(2001, "简历不存在"),
     COMPANY_NOT_FOUND(2002, "公司不存在"),

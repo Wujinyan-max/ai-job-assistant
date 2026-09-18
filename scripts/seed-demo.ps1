@@ -1,4 +1,4 @@
-﻿# ============================================================================
+# ============================================================================
 #  演示数据种子脚本
 #
 #  作用：注册/登录一个演示账号，然后批量创建公司、职位、简历、投递和面试记录，
@@ -292,8 +292,11 @@ for ($i = 0; $i -lt $statusPlan.Count; $i++) {
     $jobId = $jobIds[$i % $jobIds.Count]
     if ($existingJobIds.ContainsKey($jobId)) { $skippedApps++; continue }
 
-    $status   = $statusPlan[$i]
-    $daysAgo  = [Math]::Max(0, 29 - [int]($i * 29 / $statusPlan.Count))
+    $status = $statusPlan[$i]
+    # 早期稀疏、近期密集：i 越小越早、投递越少；i 越大越近、投递越多
+    # 平方衰减让曲线呈现自然上涨形态，而不是均匀脉冲
+    $progress = $i / ($statusPlan.Count - 1)
+    $daysAgo  = [Math]::Max(0, [int](29 * (1 - $progress * $progress)))
     $applyTime = (Get-Date).AddDays(-$daysAgo).Date.AddHours(9 + ($i % 9)).AddMinutes(($i * 13) % 60)
 
     $body = @{

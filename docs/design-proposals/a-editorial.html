@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei UI', sans-serif;
+    background: #f6f5f2;
+    color: #1a1d23;
+    height: 900px;
+    display: flex;
+  }
+
+  /* ============ 侧边栏 ============ */
+  .sider {
+    width: 208px;
+    background: #fbfaf8;
+    border-right: 1px solid #e8e6e1;
+    padding: 22px 12px;
+    flex-shrink: 0;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 9px;
+    padding: 0 10px; margin-bottom: 26px;
+  }
+  .logo-mark {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: #1a1d23; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .logo-text { font-size: 13.5px; font-weight: 600; letter-spacing: 0.02em; }
+
+  .menu-group { font-size: 10.5px; color: #a8a49c; letter-spacing: 0.1em; padding: 0 10px; margin: 18px 0 6px; text-transform: uppercase; }
+  .menu-item {
+    display: flex; align-items: center; gap: 9px;
+    height: 34px; padding: 0 10px; border-radius: 7px;
+    font-size: 13px; color: #6b6f76; margin-bottom: 1px;
+  }
+  .menu-item .icon { font-size: 14px; opacity: 0.8; }
+  .menu-item.active { background: #edece8; color: #1a1d23; font-weight: 500; }
+  .menu-item.active .icon { opacity: 1; }
+
+  /* ============ 主区域 ============ */
+  .main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+  .topbar {
+    height: 56px; background: #fbfaf8;
+    border-bottom: 1px solid #e8e6e1;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px;
+  }
+  .breadcrumb { font-size: 12.5px; color: #a8a49c; }
+  .breadcrumb b { color: #1a1d23; font-weight: 500; }
+  .topbar-right { display: flex; align-items: center; gap: 14px; }
+  .search {
+    width: 200px; height: 30px; border: 1px solid #e8e6e1; border-radius: 7px;
+    background: #fff; font-size: 12px; color: #a8a49c;
+    display: flex; align-items: center; padding: 0 10px; gap: 6px;
+  }
+  .avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #c8b89a; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+  }
+
+  .content { padding: 28px 32px; overflow: auto; }
+  .page-kicker {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+    color: #9c7c3c; text-transform: uppercase; margin-bottom: 6px;
+  }
+  .page-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 26px; font-weight: 700; letter-spacing: -0.02em;
+  }
+  .page-sub { font-size: 13px; color: #8a8a85; margin-top: 5px; margin-bottom: 26px; }
+
+  /* ============ 统计卡 ============ */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+  .stat {
+    background: #fff; border: 1px solid #eceae5; border-radius: 12px;
+    padding: 18px 20px 16px;
+  }
+  .stat-label { font-size: 12px; color: #8a8a85; margin-bottom: 10px; }
+  .stat-num { font-size: 30px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .stat-num .unit { font-size: 13px; color: #a8a49c; font-weight: 400; margin-left: 2px; }
+  .stat-foot { font-size: 11.5px; margin-top: 8px; }
+  .stat-foot.up { color: #4a7c59; }
+  .stat-foot.down { color: #b0503c; }
+  .stat-foot.neutral { color: #a8a49c; }
+
+  /* ============ 图表区 ============ */
+  .charts { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; }
+  .chart-card {
+    background: #fff; border: 1px solid #eceae5; border-radius: 12px;
+    padding: 20px 22px;
+  }
+  .chart-title { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
+  .chart-sub { font-size: 11.5px; color: #a8a49c; margin-bottom: 16px; }
+
+  /* 模拟折线图 */
+  .line-chart { position: relative; height: 160px; }
+  .line-chart svg { width: 100%; height: 100%; }
+
+  /* 模拟环形图 */
+  .donut-wrap { display: flex; align-items: center; gap: 20px; }
+  .donut-legend { flex: 1; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #6b6f76; padding: 5px 0; }
+  .legend-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .legend-val { margin-left: auto; font-weight: 600; color: #1a1d23; font-variant-numeric: tabular-nums; }
+
+  .note {
+    margin-top: 22px; padding: 14px 18px;
+    background: #f0efe9; border-radius: 10px;
+    font-size: 12px; color: #6b6f76; line-height: 1.7;
+  }
+  .note b { color: #1a1d23; }
+</style>
+</head>
+<body>
+  <aside class="sider">
+    <div class="logo"><div class="logo-mark">◆</div><div class="logo-text">求职管理</div></div>
+    <div class="menu-group">工作台</div>
+    <div class="menu-item active"><span class="icon">◐</span>数据看板</div>
+    <div class="menu-item"><span class="icon">▦</span>求职看板</div>
+    <div class="menu-item"><span class="icon">↗</span>投递记录</div>
+    <div class="menu-group">资源库</div>
+    <div class="menu-item"><span class="icon">◈</span>职位管理</div>
+    <div class="menu-item"><span class="icon">▣</span>公司管理</div>
+    <div class="menu-item"><span class="icon">≡</span>简历管理</div>
+    <div class="menu-item"><span class="icon">◍</span>面试管理</div>
+    <div class="menu-group">智能</div>
+    <div class="menu-item"><span class="icon">✦</span>AI 助手</div>
+    <div class="menu-item"><span class="icon">◔</span>面试题库</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="breadcrumb">工作台 / <b>数据看板</b></div>
+      <div class="topbar-right">
+        <div class="search">⌕ 搜索职位、公司…</div>
+        <div class="avatar">演</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-kicker">Overview · 数据看板</div>
+      <div class="page-title">早上好，演示用户</div>
+      <div class="page-sub">9月15日 星期一 · 本周已投递 3 个职位，2 场面试待进行</div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">总投递</div>
+          <div class="stat-num">12<span class="unit">个</span></div>
+          <div class="stat-foot up">↑ 本周 +3</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">进入面试</div>
+          <div class="stat-num">4<span class="unit">个</span></div>
+          <div class="stat-foot neutral">面试率 33%</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">拿到 Offer</div>
+          <div class="stat-num">2<span class="unit">个</span></div>
+          <div class="stat-foot up">↑ Offer 率 17%</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">被拒绝</div>
+          <div class="stat-num">3<span class="unit">个</span></div>
+          <div class="stat-foot down">不要气馁，继续投</div>
+        </div>
+      </div>
+
+      <div class="charts">
+        <div class="chart-card">
+          <div class="chart-title">近 30 天投递趋势</div>
+          <div class="chart-sub">每日新增投递数量</div>
+          <div class="line-chart">
+            <svg viewBox="0 0 500 160" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#9c7c3c" stop-opacity="0.18"/>
+                  <stop offset="100%" stop-color="#9c7c3c" stop-opacity="0.01"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,130 C40,125 60,100 100,95 C140,90 160,110 200,105 C240,100 260,60 300,55 C340,50 360,80 400,70 C440,60 470,40 500,35 L500,160 L0,160 Z" fill="url(#lg)"/>
+              <path d="M0,130 C40,125 60,100 100,95 C140,90 160,110 200,105 C240,100 260,60 300,55 C340,50 360,80 400,70 C440,60 470,40 500,35" fill="none" stroke="#9c7c3c" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="300" cy="55" r="3.5" fill="#fff" stroke="#9c7c3c" stroke-width="1.8"/>
+            </svg>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">投递状态分布</div>
+          <div class="chart-sub">当前所有投递的状态占比</div>
+          <div class="donut-wrap">
+            <svg width="110" height="110" viewBox="0 0 42 42">
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="#eceae5" stroke-width="5"/>
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="#9c7c3c" stroke-width="5" stroke-dasharray="35 65" stroke-dashoffset="25"/>
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="#4a7c59" stroke-width="5" stroke-dasharray="25 75" stroke-dashoffset="90"/>
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="#b0503c" stroke-width="5" stroke-dasharray="18 82" stroke-dashoffset="65"/>
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke="#c8b89a" stroke-width="5" stroke-dasharray="22 78" stroke-dashoffset="47"/>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-item"><span class="legend-dot" style="background:#9c7c3c"></span>面试中<span class="legend-val">4</span></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#4a7c59"></span>Offer<span class="legend-val">2</span></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#b0503c"></span>已拒绝<span class="legend-val">3</span></div>
+              <div class="legend-item"><span class="legend-dot" style="background:#c8b89a"></span>其他<span class="legend-val">3</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note"><b>设计语言说明：</b>米白暖调底色（#f6f5f2）替代冷灰蓝、衬线中文标题（Noto Serif SC）+ 细黑体正文形成字体对比、琥珀棕（#9c7c3c）作为唯一强调色贯穿全局、无彩色图标胶囊、无渐变按钮，整体接近 Notion / Linear 的克制感。</div>
+    </div>
+  </div>
+</body>
+</html>

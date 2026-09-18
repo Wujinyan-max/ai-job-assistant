@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,6 +34,19 @@ class MockAiEngineTest {
     private static final String RESUME = """
             3 年 Java 后端开发经验，熟悉 Spring Boot、MyBatis、MySQL。
             负责订单系统的重构，引入缓存后接口耗时从 800ms 降到 120ms。
+            """;
+
+    /** 用户手写的原始素材：板块标题 + 项目经历 + 技能，是「简历优化」的典型输入 */
+    private static final String RAW_MATERIAL = """
+            个人简介
+            3 年 Java 后端开发经验，主要做交易和订单方向。
+
+            项目经历
+            1. 负责订单系统的重构，引入 Redis 缓存后接口耗时从 800ms 降到 120ms
+            2. 参与支付链路的稳定性治理
+
+            技能
+            Java、Spring Boot、MyBatis、MySQL
             """;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -94,7 +109,7 @@ class MockAiEngineTest {
     void generateQuestionsWithGivenCategories() throws Exception {
         JsonNode result = reply(AiTask.INTERVIEW_QUESTION, Map.of(
                 "jd", JD,
-                "categories", List.of("Java基础", "Redis"),
+                "categories", List.of("编程语言与基础", "数据库与缓存"),
                 "count", 2,
                 "difficulty", "HARD"));
 
@@ -103,7 +118,7 @@ class MockAiEngineTest {
         for (JsonNode question : questions) {
             assertThat(question.path("question").asText()).isNotBlank();
             assertThat(question.path("answer").asText()).isNotBlank();
-            assertThat(question.path("category").asText()).isIn("Java基础", "Redis");
+            assertThat(question.path("category").asText()).isIn("编程语言与基础", "数据库与缓存");
             assertThat(question.path("difficulty").asText()).isEqualTo("HARD");
         }
     }
@@ -119,12 +134,167 @@ class MockAiEngineTest {
 
         List<String> categories = new java.util.ArrayList<>();
         questions.forEach(q -> categories.add(q.path("category").asText()));
-        assertThat(categories).contains("Java基础", "Spring Boot", "MySQL", "Redis", "项目");
+        assertThat(categories).contains("编程语言与基础", "框架与中间件", "数据库与缓存", "项目与业务", "HR与软素质");
+    }
+
+    @Test
+    @DisplayName("简历优化：逐条给出原文与改写，没改动的句子和板块标题都不进列表")
+    void optimizeResumeRewritesEachLine() throws Exception {
+        JsonNode result = reply(AiTask.RESUME_OPTIMIZE,
+                Map.of("jd", JD, "resume", RAW_MATERIAL, "focus", "突出高并发经验"));
+
+        JsonNode rewrites = result.path("rewrites");
+        assertThat(rewrites).hasSize(2);
+        for (JsonNode item : rewrites) {
+            assertThat(item.path("section").asText()).isEqualTo("项目经历");
+            assertThat(item.path("original").asText()).isNotBlank();
+            assertThat(item.path("optimized").asText()).isNotBlank();
+            assertThat(item.path("reason").asText()).isNotBlank();
+        }
+        assertThat(rewrites.findValuesAsText("original"))
+                .doesNotContain("项目经历", "技能", "个人简介");
+        assertThat(rewrites.findValuesAsText("original"))
+                .containsExactly("1. 负责订单系统的重构，引入 Redis 缓存后接口耗时从 800ms 降到 120ms",
+                        "2. 参与支付链路的稳定性治理");
+    }
+
+    @Test
+    @DisplayName("简历优化：技能罗列行只换表达，不加「补量化数据」这种无意义的占位")
+    void optimizeResumeDoesNotAskMetricsForSkillLines() throws Exception {
+        JsonNode result = reply(AiTask.RESUME_OPTIMIZE,
+                Map.of("jd", JD, "resume", "技能\n完成 Java、Redis 的学习与实战"));
+
+        assertThat(result.path("rewrites").findValuesAsText("optimized"))
+                .allSatisfy(text -> assertThat(text).doesNotContain("【待补充"));
+    }
+
+    @Test
+    @DisplayName("简历优化：同行技能标签和带项目符号的教育背景不能误判成项目经历")
+    void optimizeResumeDoesNotRewriteStructuredProfileFieldsAsProjects() throws Exception {
+        String resume = """
+                项目经历
+                负责订单系统重构，接口耗时从 800ms 降到 120ms
+                技能：Java,Spring Boot,Spring Cloud,MySQL,Redis,RabbitMQ,Docker,Linux,Git
+                ▮ 教育背景
+                软件测试 广州 随时到岗
+                主修课程：Java基础、SpringBoot开发、MySQL数据库、数据结构与算法
+                """;
+
+        JsonNode result = reply(AiTask.RESUME_OPTIMIZE, Map.of("jd", JD, "resume", resume));
+
+        assertThat(result.path("rewrites").findValuesAsText("original"))
+                .doesNotContain(
+                        "技能：Java,Spring Boot,Spring Cloud,MySQL,Redis,RabbitMQ,Docker,Linux,Git",
+                        "▮ 教育背景",
+                        "软件测试 广州 随时到岗",
+                        "主修课程：Java基础、SpringBoot开发、MySQL数据库、数据结构与算法");
+        assertThat(result.path("rewrites").findValuesAsText("optimized"))
+                .allSatisfy(text -> assertThat(text).doesNotContain("技能：", "主修课程："));
+    }
+
+    @Test
+    @DisplayName("简历优化：常见项目符号和同行教育标签都能切换到教育板块")
+    void optimizeResumeRecognizesCommonEducationHeadingFormats() throws Exception {
+        for (String education : List.of(
+                "- 教育背景\n软件测试 广州 随时到岗",
+                "* 教育背景\n软件测试 广州 随时到岗",
+                "· 教育背景\n软件测试 广州 随时到岗",
+                "• 教育背景\n软件测试 广州 随时到岗",
+                "教育背景：软件测试 广州 随时到岗",
+                "教育经历：软件测试 广州 随时到岗")) {
+            JsonNode result = reply(AiTask.RESUME_OPTIMIZE,
+                    Map.of("jd", JD, "resume", "项目经历\n" + education));
+
+            assertThat(result.path("rewrites").findValuesAsText("optimized"))
+                    .as(education)
+                    .allSatisfy(text -> assertThat(text).doesNotContain("【待补充：量化结果"));
+        }
+    }
+
+    @Test
+    @DisplayName("简历优化：PDF 后置标题下的实习内容和技能必须归到正确板块")
+    void optimizeResumeClassifiesTrailingPdfSections() throws Exception {
+        String resume = "技能：Java,Spring Boot,MySQL,Redis,Python,自动化测试,JMeter,SQL\n"
+                + new String(Objects.requireNonNull(
+                getClass().getResourceAsStream("/resume-sample-pdf.txt")).readAllBytes(), StandardCharsets.UTF_8);
+
+        JsonNode result = reply(AiTask.RESUME_OPTIMIZE, Map.of("jd", JD, "resume", resume));
+
+        assertThat(sectionOf(result.path("rewrites"), "1. 负责 Web 端与移动端产品的功能测试"))
+                .isEqualTo("工作经历");
+        assertThat(sectionOf(result.path("rewrites"), "1. 熟悉UI自动化测试"))
+                .isEqualTo("技能");
+    }
+
+    @Test
+    @DisplayName("简历优化：素材本身没毛病时如实说明，而不是硬凑几条改写")
+    void optimizeResumeSaysNothingToFix() throws Exception {
+        JsonNode result = reply(AiTask.RESUME_OPTIMIZE,
+                Map.of("jd", JD, "resume", "项目经历\n主导订单系统重构，接口耗时从 800ms 降到 120ms"));
+
+        assertThat(result.path("rewrites")).isEmpty();
+        assertThat(result.path("comment").asText()).contains("没有识别到需要改写的表达");
+    }
+
+    @Test
+    @DisplayName("简历优化：缺量化数据时给占位提示，不替候选人编数字")
+    void optimizeResumeFlagsMissingMetricsInsteadOfInventingThem() throws Exception {
+        JsonNode result = reply(AiTask.RESUME_OPTIMIZE,
+                Map.of("jd", JD, "resume", "项目经历\n2. 参与支付链路的稳定性治理"));
+
+        JsonNode rewrite = result.path("rewrites").get(0);
+        assertThat(rewrite.path("original").asText()).isEqualTo("2. 参与支付链路的稳定性治理");
+        assertThat(rewrite.path("optimized").asText())
+                .startsWith("深度参与")
+                .contains("【待补充");
+        assertThat(rewrite.path("reason").asText()).contains("偏弱");
+    }
+
+    @Test
+    @DisplayName("简历优化：有量化数据的条目不再追加占位提示")
+    void optimizeResumeKeepsQuantifiedLines() throws Exception {
+        JsonNode result = reply(AiTask.RESUME_OPTIMIZE,
+                Map.of("jd", JD, "resume", "负责订单系统重构，接口耗时从 800ms 降到 120ms"));
+
+        String optimized = result.path("rewrites").get(0).path("optimized").asText();
+        assertThat(optimized).startsWith("主导").doesNotContain("【待补充");
+    }
+
+    @Test
+    @DisplayName("简历优化：输出关键词覆盖、完整优化稿和待补充清单")
+    void optimizeResumeReportsKeywordCoverage() throws Exception {
+        JsonNode result = reply(AiTask.RESUME_OPTIMIZE, Map.of("jd", JD, "resume", RAW_MATERIAL));
+
+        assertThat(toStringList(result.path("matchedKeywords"))).contains("Java", "Spring Boot", "MySQL", "Redis");
+        assertThat(toStringList(result.path("missingKeywords"))).contains("Kafka");
+        assertThat(toStringList(result.path("suggestions"))).isNotEmpty();
+
+        String content = result.path("optimizedContent").asText();
+        assertThat(content).contains("技能：").contains("项目经历：").contains("【待补充】");
+        assertThat(result.path("comment").asText()).contains("本地模拟引擎");
+    }
+
+    @Test
+    @DisplayName("简历优化：素材太短时不硬凑改写，直接提示补内容")
+    void optimizeResumeWithTooShortMaterial() throws Exception {
+        JsonNode result = reply(AiTask.RESUME_OPTIMIZE, Map.of("jd", JD, "resume", "技能\nJava"));
+
+        assertThat(result.path("rewrites")).isEmpty();
+        assertThat(result.path("comment").asText()).contains("没有识别到可以改写的经历描述");
     }
 
     private static List<String> toStringList(JsonNode array) {
         List<String> values = new java.util.ArrayList<>();
         array.forEach(node -> values.add(node.asText()));
         return values;
+    }
+
+    private static String sectionOf(JsonNode rewrites, String originalPrefix) {
+        for (JsonNode rewrite : rewrites) {
+            if (rewrite.path("original").asText().startsWith(originalPrefix)) {
+                return rewrite.path("section").asText();
+            }
+        }
+        return null;
     }
 }

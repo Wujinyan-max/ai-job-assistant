@@ -1,7 +1,8 @@
 <template>
   <div class="page">
     <div class="page-header">
-      <div><h2 class="page-title">简历管理</h2><div class="page-subtitle">支持多份简历，针对不同岗位灵活切换</div></div>
+      <div><div class="page-kicker">Resumes</div>
+        <h2 class="page-title">简历管理</h2><div class="page-subtitle">支持多份简历，针对不同岗位灵活切换</div></div>
     </div>
     <div class="toolbar">
       <el-input v-model="query.keyword" placeholder="搜索简历名称 / 技能" clearable style="width: 240px"
@@ -37,10 +38,25 @@
 
         <div class="resume-summary muted">{{ item.summary || '暂无个人简介' }}</div>
 
-        <div class="resume-actions">
+        <div class="resume-actions action-bar">
           <el-button link type="primary" @click="openDialog(item)">编辑</el-button>
           <el-button link type="primary" :disabled="item.isDefault === 1" @click="onSetDefault(item)">设为默认</el-button>
-          <el-button link type="primary" @click="$router.push({ path: '/ai', query: { resumeId: item.id } })">AI 匹配</el-button>
+          <span class="action-gap"></span>
+          <el-tooltip content="AI 匹配度分析" placement="top">
+            <el-button link type="primary" class="is-icon-only" :icon="Aim"
+                       aria-label="AI 匹配"
+                       @click="$router.push({ path: '/ai', query: { resumeId: item.id } })" />
+          </el-tooltip>
+          <el-tooltip content="按岗位优化这份简历" placement="top">
+            <el-button link type="primary" class="is-icon-only" :icon="MagicStick"
+                       aria-label="按岗位优化"
+                       @click="$router.push({ path: '/ai', query: { resumeId: item.id, tab: 'optimize' } })" />
+          </el-tooltip>
+          <el-tooltip content="A4 排版预览 / 导出 PDF" placement="top">
+            <el-button link type="primary" class="is-icon-only" :icon="Printer"
+                       aria-label="排版预览"
+                       @click="$router.push({ path: '/ai', query: { resumeId: item.id, tab: 'structure' } })" />
+          </el-tooltip>
           <el-button link type="danger" @click="onDelete(item)">删除</el-button>
         </div>
       </div>
@@ -54,14 +70,27 @@
       <el-alert v-if="importInfo" class="import-alert" type="success" show-icon :closable="false"
                 :title="`已从《${importInfo.fileName}》读取到 ${importInfo.textLength} 字`"
                 :description="`自动填充：${importInfo.filledFields.join('、')}，请核对无误后再保存`" />
+      <!-- 头像和版式单独提示：这些是排版页「原版复刻」要用的，用户得知道已经读到了 -->
+      <!-- 识别方式单独提示：模型看不了图时要让用户知道，并给出换模型的建议 -->
+      <el-alert v-if="importInfo?.notice" class="import-alert" type="warning" show-icon :closable="false"
+                title="识别方式有变动" :description="importInfo.notice" />
+      <div v-if="form.avatar || form.styleJson" class="import-style-tip">
+        <img v-if="form.avatar" class="import-avatar" :src="form.avatar" alt="从简历里读取到的头像" />
+        <span class="muted">
+          已读取到{{ form.avatar ? '头像' : '' }}{{ form.avatar && form.styleJson ? '和' : '' }}{{ form.styleJson ? '版式配色' : '' }}，
+          保存后在「AI 助手 → 简历排版」里可以还原成这份简历原来的样子
+        </span>
+      </div>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="88px">
         <el-form-item label="简历名称" prop="title">
           <el-input v-model="form.title" placeholder="例如：Java 后端-社招版" />
         </el-form-item>
         <el-row :gutter="12">
-          <el-col :span="8"><el-form-item label="姓名"><el-input v-model="form.name" /></el-form-item></el-col>
+          <el-col :span="8"><el-form-item label="姓名">
+            <el-input v-model="form.name" placeholder="例如：张三" />
+          </el-form-item></el-col>
           <el-col :span="8"><el-form-item label="学历" label-width="60px">
-            <el-select v-model="form.education" clearable style="width: 100%">
+            <el-select v-model="form.education" clearable placeholder="选择学历" style="width: 100%">
               <el-option v-for="item in ['大专', '本科', '硕士', '博士']" :key="item" :label="item" :value="item" />
             </el-select>
           </el-form-item></el-col>
@@ -70,14 +99,19 @@
           </el-form-item></el-col>
         </el-row>
         <el-row :gutter="12">
-          <el-col :span="12"><el-form-item label="电话"><el-input v-model="form.phone" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="邮箱"><el-input v-model="form.email" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="电话">
+            <el-input v-model="form.phone" placeholder="例如：13800000000" />
+          </el-form-item></el-col>
+          <el-col :span="12"><el-form-item label="邮箱">
+            <el-input v-model="form.email" placeholder="例如：zhangsan@example.com" />
+          </el-form-item></el-col>
         </el-row>
         <el-form-item label="技能标签">
           <el-input v-model="form.skills" placeholder="用英文逗号分隔，例如：Java,Spring Boot,MySQL,Redis" />
         </el-form-item>
         <el-form-item label="个人简介">
-          <el-input v-model="form.summary" type="textarea" :rows="3" maxlength="2000" show-word-limit />
+          <el-input v-model="form.summary" type="textarea" :rows="3" maxlength="2000" show-word-limit
+                    placeholder="一句话说明你的方向、年限和优势，AI 匹配和出题都会参考" />
         </el-form-item>
         <el-form-item label="简历正文" prop="content">
           <el-input v-model="form.content" type="textarea" :rows="10"
@@ -98,7 +132,7 @@
 <script setup>
 import { onActivated, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Upload } from '@element-plus/icons-vue'
+import { Aim, MagicStick, Plus, Printer, Search, Upload } from '@element-plus/icons-vue'
 import { resumeApi } from '@/api'
 
 /** 与后端 multipart 限制保持一致，避免白传一次超大文件 */
@@ -119,7 +153,9 @@ const query = reactive({ pageNum: 1, pageSize: 12, keyword: '' })
 const dialog = reactive({ visible: false, id: null })
 const form = reactive({
   title: '', name: '', phone: '', email: '', education: '', workYears: 0,
-  skills: '', summary: '', content: '', isDefault: false
+  skills: '', summary: '', content: '', contentJson: '', isDefault: false,
+  // 头像与导入时提取到的版式：从 PDF 里读到的，跟着简历一起存
+  avatar: '', styleJson: ''
 })
 
 const rules = {
@@ -154,7 +190,10 @@ function openDialog(row) {
     skills: row?.skills || '',
     summary: row?.summary || '',
     content: row?.content || '',
-    isDefault: row?.isDefault === 1
+    contentJson: row?.contentJson || '',
+    isDefault: row?.isDefault === 1,
+    avatar: row?.avatar || '',
+    styleJson: row?.styleJson || ''
   })
 }
 
@@ -205,6 +244,11 @@ function applyImport(data) {
     skills: data.skills || '',
     summary: data.summary || '',
     content: data.content || '',
+    // 导入时已经识别出结构就直接带上，排版页不用再花一次 AI 调用
+    contentJson: data.structure ? JSON.stringify(data.structure) : '',
+    // 导入时一并取出头像和版式，排版页就能直接还原成原来的样子
+    avatar: data.avatar || '',
+    styleJson: data.style ? JSON.stringify(data.style) : '',
     // 第一份简历顺手设为默认，省得用户再点一次「设为默认」
     isDefault: rows.value.length === 0
   })
@@ -249,6 +293,24 @@ onActivated(load)
   margin-bottom: 14px;
 }
 
+/* 导入后提示「头像 + 版式」已读到：版式是排版页复刻外观的依据，得让用户看得见 */
+.import-style-tip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -4px 0 14px;
+  font-size: 12px;
+}
+
+.import-avatar {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  object-fit: cover;
+}
+
 .resume-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
@@ -269,7 +331,7 @@ onActivated(load)
   position: absolute;
   inset: 0 auto 0 0;
   width: 3px;
-  background: linear-gradient(var(--brand), #8ab0ff);
+  background: var(--brand);
   opacity: .85;
 }
 
@@ -303,7 +365,7 @@ onActivated(load)
 }
 
 .resume-actions {
-  border-top: 1px solid #f0f3f8;
+  border-top: 1px solid var(--divider);
   padding-top: 8px;
   margin-top: auto;
 }

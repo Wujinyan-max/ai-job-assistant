@@ -65,6 +65,8 @@ export const interviewApi = {
 export const questionApi = {
   page: (params) => request.get('/questions', { params }),
   categories: () => request.get('/questions/categories'),
+  categoryStats: () => request.get('/questions/category-stats'),
+  categoryOptions: () => request.get('/questions/category-options'),
   markMastered: (id, mastered) => request.patch(`/questions/${id}/mastered`, { mastered }),
   remove: (id) => request.delete(`/questions/${id}`),
   removeBatch: (ids) => request.delete('/questions', { data: ids })
@@ -74,15 +76,20 @@ export const questionApi = {
 export const aiApi = {
   analyzeJd: (data) => request.post('/ai/analyze-jd', data),
   matchResume: (data) => request.post('/ai/match-resume', data),
-    generateQuestions: (data) => request.post('/ai/generate-questions', data),
-    history: (params) => request.get('/ai/history', { params }),
-    config: () => request.get('/ai/config'),
-    saveConfig: (data) => request.put('/ai/config', data),
-    testConfig: () => request.post('/ai/config/test')
+  optimizeResume: (data) => request.post('/ai/optimize-resume', data),
+  structureResume: (data) => request.post('/ai/structure-resume', data),
+  generateQuestions: (data) => request.post('/ai/generate-questions', data),
+  extractQuestions: (data) => request.post('/ai/extract-questions', data),
+  history: (params) => request.get('/ai/history', { params }),
+  config: () => request.get('/ai/config'),
+  saveConfig: (data) => request.put('/ai/config', data),
+  testConfig: () => request.post('/ai/config/test'),
+  models: (data) => request.post('/ai/models', data)
   }
 
 /* ------------------------------- 看板 ---------------------------------- */
 export const dashboardApi = {
   overview: (trendDays = 30) => request.get('/dashboard', { params: { trendDays } }),
-  home: (params) => request.get('/dashboard/home', { params })
+  home: (params) => request.get('/dashboard/home', { params }),
+  resumePerformance: (days = 30) => request.get('/dashboard/resume-performance', { params: { days } })
 }

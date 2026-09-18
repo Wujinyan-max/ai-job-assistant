@@ -49,4 +49,11 @@ class ApplicationStatusTest {
         assertThat(ApplicationStatus.SUBMITTED).containsExactly(
                 "APPLIED", "WRITTEN_TEST", "INTERVIEW", "OFFER", "REJECTED", "CLOSED");
     }
+
+    @Test
+    @DisplayName("CLOSED 的文案是「已放弃」，枚举值保持不变")
+    void closedReadsAsGivingUp() {
+        assertThat(ApplicationStatus.label(ApplicationStatus.CLOSED)).isEqualTo("已放弃");
+        assertThat(ApplicationStatus.CLOSED).isEqualTo("CLOSED");
+    }
 }

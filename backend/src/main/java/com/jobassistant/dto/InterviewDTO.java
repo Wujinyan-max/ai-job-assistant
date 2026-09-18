@@ -26,6 +26,9 @@ public record InterviewDTO(
         @Schema(description = "PENDING / PASS / FAIL")
         String result,
 
-        String review
+        String review,
+
+        @Schema(description = "通过后用户选的下一步：OFFER 已拿 Offer / NEXT_ROUND 进入下一轮 / 留空保持现状")
+        String nextStep
 ) {
 }
